@@ -182,7 +182,7 @@ CODE_5 = {0: '',
           5: 'File Log',
           }
 
-
+# care must be taken when using 3-letter keys to avoid cross contaminating with 3-char parameter keys
 CODE_3_ABR = {0: '',
               1: '',  # sc - single channel  leave blank because it is redundant when paired with sm, rf
               2: 'ig',

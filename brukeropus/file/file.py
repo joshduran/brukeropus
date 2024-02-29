@@ -1,4 +1,4 @@
-import os, datetime, warnings
+import datetime, warnings
 import numpy as np
 from brukeropus.file.utils import get_block_type_label, get_data_key, get_param_label, _print_block_header, _print_cols
 from brukeropus.file.parser import (read_opus_file_bytes,
@@ -6,21 +6,27 @@ from brukeropus.file.parser import (read_opus_file_bytes,
                                     parse_directory,
                                     parse_data_block,
                                     parse_3d_data_block,
-                                    parse_param_block)
+                                    parse_param_block,
+                                    parse_file_log)
+
+
+__docformat__ = "google"
 
 
 def read_opus(filepath):
-    '''Return an OPUSFile object from an OPUS file filepath.
+    '''Return an `OPUSFile` object from an OPUS file filepath.
 
     The following produces identical results:
+        ```python
         data = read_opus(filepath)
         data = OPUSFile(filepath)
-
+        ```
     Args:
         filepath (str or Path): filepath of an OPUS file (typically *.0)
 
     Returns:
-        opus_file (OPUSFile): an instance of the OPUSFile class containing all data/metadata extracted from the file.
+        opus_file (`OPUSFile`): an instance of the `OPUSFile` class containing all data/metadata extracted from the
+        file.
     '''
     return OPUSFile(filepath)
 
@@ -30,40 +36,42 @@ class OPUSFile:
 
     Args:
         filepath: full path to the OPUS file to be parsed. Can be a string or Path object and is required to initilize
-            an OPUSFile object.
+            an `OPUSFile` object.
 
     Attributes:
-        is_opus (bool): True if filepath points to an OPUS file, False otherwise. Also returned for dunder __bool__()
-        params (Parameters): class containing all general parameter metadata for the OPUS file. To save typing, the
-            three char parameters from params also become attributes of the `OPUSFile` class (e.g. bms, apt, src)
-        rf_params (Parameters): class containing all reference parameter metadata for the OPUS file.
+        is_opus (`bool`): True if filepath points to an OPUS file, False otherwise. Also returned for dunder 
+            `__bool__()`  
+        params (`Parameters`): class containing all general parameter metadata for the OPUS file. To save typing, the
+            three char parameters from params also become attributes of the `OPUSFile` class (e.g. bms, apt, src)  
+        rf_params (`Parameters`): class containing all reference parameter metadata for the OPUS file.  
         data_keys (list): list of all data block keys stored in the file (i.e. sm, rf, t, a, r, igsm, igrf, phsm, etc.).
-            These keys become data attributes of the class which return an instance of `Data` class.
-        datetime (datetime): Returns the most recent datetime of all the data blocks stored in the file (typically
+            These keys become data attributes of the class which return an instance of `Data` or `Data3D`.
+        datetime (`datetime`): Returns the most recent datetime of all the data blocks stored in the file (typically
             result spectra)
-        directory (FileDirectory):  class containing information about all the various data blocks in the file.
+        directory (`FileDirectory`):  class containing information about all the various data blocks in the file.
+        file_log (str): File log containing text about how the file was generated/edited (not always saved)
 
-    Data Attributes: (varies depending on which blocks were saved in the OPUS file)
-        sm: Single-channel sample spectra
-        rf: Single-channel reference spectra
-        igsm: Sample interferogram
-        igrf: Reference interferogram
-        phsm: Sample phase
-        phrf: Reference phase
-        a: Absorbance
-        t: Transmittance
-        r: Reflectance
-        km: Kubelka-Munk
-        tr: Trace (Intensity over Time)
-        gcig: gc File (Series of Interferograms)
-        gcsc: gc File (Series of Spectra)
-        ra: Raman
-        e: Emission
-        dir: Directory
-        p: Power
-        logr: log(Reflectance)
-        atr: ATR
-        pas: Photoacoustic
+    Data Attributes:
+        **sm:** Single-channel sample spectra  
+        **rf:** Single-channel reference spectra  
+        **igsm:** Sample interferogram  
+        **igrf:** Reference interferogram  
+        **phsm:** Sample phase  
+        **phrf:** Reference phase  
+        **a:** Absorbance  
+        **t:** Transmittance  
+        **r:** Reflectance  
+        **km:** Kubelka-Munk  
+        **tr:** Trace (Intensity over Time)  
+        **gcig:** gc File (Series of Interferograms)  
+        **gcsc:** gc File (Series of Spectra)  
+        **ra:** Raman  
+        **e:** Emission  
+        **dir:** Directory  
+        **p:** Power  
+        **logr:** log(Reflectance)  
+        **atr:** ATR  
+        **pas:** Photoacoustic  
     '''
 
     def __init__(self, filepath: str):
@@ -76,6 +84,10 @@ class OPUSFile:
             self.directory = FileDirectory(filebytes)
             self.params = Parameters(filebytes, self.directory.param_blocks)
             self.rf_params = Parameters(filebytes, self.directory.rf_param_blocks)
+            if hasattr(self.directory, 'file_log_block'):
+                self.file_log = '\n'.join(parse_file_log(filebytes,
+                                                            self.directory.file_log_block.size,
+                                                            self.directory.file_log_block.start))
             self.data_keys = []
             for data, status in self.directory.data_and_status_block_pairs:
                 key = data.get_data_key()
@@ -111,7 +123,8 @@ class OPUSFile:
         '''Prints all the parameter metadata to the console (organized by block)'''
         width = key_width + label_width + value_width
         col_widths = (key_width, label_width, value_width)
-        for block in self.directory.param_blocks:
+        param_blocks = self.directory.param_blocks + self.directory.rf_param_blocks
+        for block in param_blocks:
             label = get_block_type_label(block.type)
             _print_block_header(label, width=width)
             _print_cols(('Key', 'Label', 'Value'), col_widths=col_widths)
@@ -225,28 +238,28 @@ class FileBlockInfo:
 class FileDirectory:
     '''Contains type and pointer information for all blocks of data in an OPUS file.
 
-    FileDirectory information is decoded from the raw file bytes of an OPUS file. First the header is read which
+    `FileDirectory` information is decoded from the raw file bytes of an OPUS file. First the header is read which
     provides the start location of the directory block, number of blocks in file, and maximum number of blocks the file
     supports. Then if decodes the block pointer information from each entry of the file's directory block. Rather than
     store all file blocks in a single list (as it is done in the OPUS file directory), this class sorts the blocks into
-    categories: data, data_status, params, rf_params, directory, and file_log.  It also pairs the data blocks with their
-    corresponding data_status block to simplify grouping y data with the parameters that are used to generate x data and
-    other data block specific metadata.
+    categories: `data`, `data_status`, `params`, `rf_params`, `directory`, and `file_log`.  It also pairs the data
+    blocks with their corresponding `data_status` block to simplify grouping y data with the parameters that are used to
+    generate x data and other data block specific metadata.
 
     Args:
-        filebytes: raw bytes from OPUS file. see: read_opus_file_bytes
+        filebytes: raw bytes from OPUS file. see: `brukeropus.file.parser.read_opus_file_bytes`
 
     Attributes:
         start: pointer to start location of the directory block
         max_blocks: maximum number of blocks supported by file
         num_blocks: total number of blocks in the file
-        data_blocks: list of FileBlockInfo that contain array data (e.g. sample, reference, phase)
-        data_status_blocks: list of FileBlockInfo that contain metadata specific to a data block (units, etc.)
-        param_blocks: list of FileBlockInfo that contain metadata about the measurement sample
-        rf_param_blocks: list of FileBlockInfo that contain metatdata about the reference measurement
-        directory_block: FileBlockInfo for directory block that contains all the block info in the file
-        file_log_block: FileBlockInfo of the file log (changes, etc.)
-        data_and_status_block_pairs: (data: FileBlockInfo, data_status: FileBlockInfo) which pairs the data status
+        data_blocks: list of `FileBlockInfo` that contain array data (e.g. sample, reference, phase)
+        data_status_blocks: list of `FileBlockInfo` that contain metadata specific to a data block (units, etc.)
+        param_blocks: list of `FileBlockInfo` that contain metadata about the measurement sample
+        rf_param_blocks: list of `FileBlockInfo` that contain metatdata about the reference measurement
+        directory_block: `FileBlockInfo` for directory block that contains all the block info in the file
+        file_log_block: `FileBlockInfo` of the file log (changes, etc.)
+        data_and_status_block_pairs: (data: `FileBlockInfo`, data_status: `FileBlockInfo`) which pairs the data status
             parameter block (time, x units, y units, etc.) with the data block it informs
     '''
 
@@ -281,7 +294,7 @@ class FileDirectory:
     def __str__(self):
         data_keys = [b.get_data_key() for b in self.data_blocks]
         data_str = ', '.join(data_keys)
-        return 'File Directory: ' + str(self.num_blocks) + ' blocks: (' + data_str + '); ' + str(len(self.param_blocks))
+        return 'File Directory: ' + str(self.num_blocks) + ' total blocks; data blocks: (' + data_str + ')'
 
     def _pair_data_and_status_blocks(self):
         for data_block in self.data_blocks:
@@ -304,25 +317,26 @@ class Parameters:
 
     Parameters of an OPUS file are stored as key, val pairs, where the key is always three chars.  For example, the
     beamsplitter is stored in the "bms" attribute, source in "src" etc.  A list of known keys, with friendly label can
-    be found in file_constants.PARAM_LABELS.  The keys in an OPUS file are not case sensitive, and stored in all CAPS
-    (i.e. BMS, SRC, etc.) but this class uses lower case keys to follow python convention.  The class is initialized
-    from a list of parameter FileInfoBlocks.  The key, val items in blocks of the list are combined into one paramter
-    class, so care must be taken not to pass block that will overwrite each others keys.  Analagous to a dict, the keys,
-    values, and (key, val) can be iterated over using the functions: keys(), values(), and items() respectively.
+    be found in `brukeropus.file.constants.PARAM_LABELS`.  The keys in an OPUS file are not case sensitive, and stored
+    in all CAPS (i.e. `BMS`, `SRC`, etc.) but this class uses lower case keys to follow python convention.  The class is
+    initialized from a list of parameter `FileBlockInfo`.  The key, val items in blocks of the list are combined into
+    one parameter class, so care must be taken not to pass blocks that will overwrite each others keys.  Analagous to a
+    dict, the keys, values, and (key, val) can be iterated over using the functions: `keys()`, `values()`, and `items()`
+    respectively.
 
     Args:
-        filebytes: raw bytes from OPUS file. see: read_opus_file_bytes
-        param_blocks: list of FileBlockInfo; every block in the list should be classified as a parameter block.
+        filebytes: raw bytes from OPUS file. see: `brukeropus.file.parser.read_opus_file_bytes`
+        param_blocks: list of `FileBlockInfo`; every block in the list should be classified as a parameter block.
 
     Attributes:
         xxx: parameter attributes are stored as three char keys. Which keys are generated depends on the list of
-            FileBlockInfo that is used to initialize the class. If input list contains a single data status
-            FileBlockInfo, attributes will include: fxv, lxv, npt (first x-val, last x-val, number of points), etc.
-            Other blocks produce attributes such as: bms, src, apt (beamsplitter, source, aperture) etc. A full list of
-            keys available in a given Parameters instance are given by the .keys() method.
-        datetime: if blocks contain the keys: dat (date) and tim (time), the datetime attribute of this class will be
-            set to a python datetime object. Currently, only data status blocks are known to have these keys. If dat and
-            tim are not present in the class, the datetime attribute will return None.
+            `FileBlockInfo` that is used to initialize the class. If input list contains a single data status
+            `FileBlockInfo`, attributes will include: `fxv`, `lxv`, `npt` (first x-val, last x-val, number of points),
+            etc. Other blocks produce attributes such as: `bms`, `src`, `apt` (beamsplitter, source, aperture) etc. A
+            full list of keys available in a given Parameters instance are given by the `keys()` method.
+        datetime: if blocks contain the keys: `dat` (date) and `tim` (time), the `datetime` attribute of this class will
+            be set to a python `datetime` object. Currently, only data status blocks are known to have these keys. If
+            `dat` and `tim` are not present in the class, the `datetime` attribute will return `None`.
     '''
     __slots__ = ('_params', 'datetime')
 
@@ -372,28 +386,29 @@ class Data:
     '''Class containing array data and associated parameter/metadata from an OPUS file.
 
     Args:
-        filebytes: raw bytes from OPUS file. see: read_opus_file_bytes
-        data_info: FileBlockInfo instance of a data block
-        data_status_info: FileBlockInfo instance of a data status block which contains metadata about the data_info
+        filebytes: raw bytes from OPUS file. see: `read_opus_file_bytes`
+        data_info: `FileBlockInfo` instance of a data block
+        data_status_info: `FileBlockInfo` instance of a data status block which contains metadata about the data_info
             block. This block is a parameter block.
 
     Attributes:
-        params: Parameter class with metadata associated with the data block such as first x point (fxp), last x point
-            (lxp), number of points (npt), date (dat), time (tim) etc.
-        y: 1D numpy array containing y values of data block
-        x: 1D numpy array containing x values of data block. Units of x array are given by .dxu attribute.
+        params: `Parameter` class with metadata associated with the data block such as first x point: `fxp`, last x
+            point: `lxp`, number of points: `npt`, date: `dat`, time: `tim` etc.
+        y: 1D `numpy` array containing y values of data block
+        x: 1D `numpy` array containing x values of data block. Units of x array are given by `dxu` parameter.
         label: human-readable string label describing the data block (e.g. Sample Spectrum, Absorbance, etc.)
 
     Extended Attributes:
-        wn: Returns the x array in wavenumber (cm^-1) units regardless of what units the x array was originally saved
-            in. This is only valid for spectral data blocks such as sample, reference, transmission, etc., not
-            interferogram or phase blocks.
-        wl: Returns the x array in wavelength (micron) units regardless of what units the x array was originally saved
-            in. This is only valid for spectral data blocks such as sample, reference, transmission, etc., not
-            interferogram or phase blocks.
-        datetime: Returns a datetime class of when the data was taken (extracted from data status parameter block).
-        xxx: the various three char parameter keys from the "params" attribute can be directly called from the data
-            class for convenience. Common parameters include dxu (x units), mxy (max y value), mny (min y value), etc.
+        **wn:** Returns the x array in wavenumber (cm⁻¹) units regardless of what units the x array was originally
+            saved in. This is only valid for spectral data blocks such as sample, reference, transmission, etc., not
+            interferogram or phase blocks.  
+        **wl:** Returns the x array in wavelength (µm) units regardless of what units the x array was originally
+            saved in. This is only valid for spectral data blocks such as sample, reference, transmission, etc., not
+            interferogram or phase blocks.  
+        **datetime:** Returns a `datetime` class of when the data was taken (extracted from data status parameter block).  
+        **xxx:** the various three char parameter keys from the `params` attribute can be directly called from the 
+            `Data` class for convenience. Common parameters include `dxu` (x units), `mxy` (max y value), `mny` (min y
+            value), etc.  
     '''
     __slots__ = ('_key', 'params', 'y', 'x', 'label')
 
@@ -453,16 +468,17 @@ class Data3D(Data):
         label: human-readable string label describing the data block (e.g. Sample Spectrum, Absorbance, etc.)
 
     Extended Attributes:
-        wn: Returns the x array in wavenumber (cm^-1) units regardless of what units the x array was originally saved
+        **wn:** Returns the x array in wavenumber (cm⁻¹) units regardless of what units the x array was originally saved
             in. This is only valid for spectral data blocks such as sample, reference, transmission, etc., not
-            interferogram or phase blocks.
-        wl: Returns the x array in wavelength (micron) units regardless of what units the x array was originally saved
+            interferogram or phase blocks.  
+        **wl:** Returns the x array in wavelength (µm) units regardless of what units the x array was originally saved
             in. This is only valid for spectral data blocks such as sample, reference, transmission, etc., not
-            interferogram or phase blocks.
-        datetime: Returns a datetime class of when the data was taken (extracted from data status parameter block).
-        xxx: the various three char parameter keys from the "params" attribute can be directly called from the data
+            interferogram or phase blocks.  
+        **datetime:** Returns a `datetime` class of when the data was taken (extracted from data status parameter
+            block).  
+        **xxx:** the various three char parameter keys from the "params" attribute can be directly called from the data
             class for convenience. Several of these parameters return arrays, rather than singular values because they
-            are recorded for every spectra in the series, e.g. npt, mny, mxy, tim, nsn
+            are recorded for every spectra in the series, e.g. `npt`, `mny`, `mxy`, `tim`, `nsn`.  
     '''
     __slots__ = ('_key', 'params', 'y', 'x', 'num_spectra', 'label')
 

@@ -14,6 +14,9 @@ __all__ = ['find_opus_files', 'get_param_label', 'get_type_code_label', 'get_blo
            'parse_file_and_print']
 
 
+__docformat__ = "google"
+
+
 def find_opus_files(directory, recursive: bool = False):
     '''Finds all files in a directory with a strictly numeric extension (OPUS file convention).
 
