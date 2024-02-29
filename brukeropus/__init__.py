@@ -43,3 +43,4 @@ More detailed documentation on the file submodule can be found in `brukeropus.fi
 '''
 
 from brukeropus.file import OPUSFile, read_opus, find_opus_files
+from brukeropus.control import Opus
