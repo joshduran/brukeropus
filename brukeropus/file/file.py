@@ -142,246 +142,6 @@ class OPUSFile:
             yield getattr(self, key)
 
 
-class FileBlockInfo:
-    '''Contains type, size and location information about an OPUS file block.
-
-    This information is parsed from the directory block of an OPUS file and provides the information needed to parse the
-    block.
-
-    Args:
-        block_type: six integer tuple that describes the type of data in the file block
-        size: size of block in number of bytes
-        start: pointer to start location of the block within the file.
-
-    Attributes:
-        type: six integer tuple that describes the type of data in the file block
-        size: size of block in number of bytes
-        start: pointer to start location of the block within the file
-        keys: tuple of three char keys contained in parameter blocks. This attribute is set by the OPUSFile class only
-            when the block is parameter block. This enables grouping parameters by block if desired.
-    '''
-
-    __slots__ = ('type', 'size', 'start', 'keys')
-
-    keys: tuple
-
-    def __init__(self, block_type: tuple, size: int, start: int):
-        self.type = block_type
-        self.size = size
-        self.start = start
-
-    def __str__(self):
-        label = self.get_label()
-        return 'Block Info: ' + label + ' (size: ' + str(self.size) + ' bytes; start: ' + str(self.start) + ')'
-
-    def is_valid(self):
-        '''Returns False if FileBlockInfo is undefined (i.e. FileBlockInfo.type == (0, 0, 0, 0, 0, 0))'''
-        return self.type != (0, 0, 0, 0, 0, 0)
-
-    def is_data_status(self):
-        '''Returns True if FileBlockInfo is a data status parameter block'''
-        return self.type[2] == 1
-
-    def is_rf_param(self):
-        '''Returns True if FileBlockInfo is a parameter block associated with the reference measurement'''
-        return self.type[2] > 1 and self.type[1] == 2
-
-    def is_param(self):
-        '''Returns True if FileBlockInfo is a parameter block'''
-        return self.type[2] > 1
-
-    def is_directory(self):
-        '''Returns True if FileBlockInfo is the directory block'''
-        return self.type == (0, 0, 0, 13, 0, 0)
-
-    def is_file_log(self):
-        '''Returns True if FileBlockInfo is the file log block'''
-        return self.type == (0, 0, 0, 0, 0, 5)
-
-    def is_data(self):
-        '''Returns True if FileBlockInfo is a data block or 3D data block'''
-        return self.type[2] == 0 and self.type[3] > 0 and self.type[3] != 13
-
-    def is_3d_data(self):
-        '''Returns True if FileBlockInfo is a 3D data block (i.e. data series)'''
-        return self.is_data() and self.type[5] == 2
-
-    def is_data_status_match(self, data_block_info):
-        '''Returns True if FileBlockInfo is a data status block and a match to the data_block_info argument.
-
-        This function is used to match a data status block (contains metadata for data block) with its associated data
-        block (contains array data).
-
-        Args:
-            data_block_info (FileBlockInfo):  data block being tested as a match.
-
-        Returns:
-            is_match (bool): True if FileBlockInfo is data status block and input argument is matching data block'''
-        if self.is_data_status():
-            return data_block_info.type[:2] == self.type[:2] and data_block_info.type[3:] == self.type[3:]
-
-    def get_label(self):
-        '''Returns a friendly string label that describes the block type'''
-        return get_block_type_label(self.type)
-
-    def get_data_key(self):
-        '''If block is a data block, this function will return an shorthand key to reference that data.
-
-        e.g. t: transmission, a: absorption, sm: sample, rf: reference, smph: sample phase etc. If the block is not
-        a data block, it will return None.'''
-        if self.is_data():
-            return get_data_key(self.type)
-        else:
-            return None
-
-
-class FileDirectory:
-    '''Contains type and pointer information for all blocks of data in an OPUS file.
-
-    `FileDirectory` information is decoded from the raw file bytes of an OPUS file. First the header is read which
-    provides the start location of the directory block, number of blocks in file, and maximum number of blocks the file
-    supports. Then if decodes the block pointer information from each entry of the file's directory block. Rather than
-    store all file blocks in a single list (as it is done in the OPUS file directory), this class sorts the blocks into
-    categories: `data`, `data_status`, `params`, `rf_params`, `directory`, and `file_log`.  It also pairs the data
-    blocks with their corresponding `data_status` block to simplify grouping y data with the parameters that are used to
-    generate x data and other data block specific metadata.
-
-    Args:
-        filebytes: raw bytes from OPUS file. see: `brukeropus.file.parser.read_opus_file_bytes`
-
-    Attributes:
-        start: pointer to start location of the directory block
-        max_blocks: maximum number of blocks supported by file
-        num_blocks: total number of blocks in the file
-        data_blocks: list of `FileBlockInfo` that contain array data (e.g. sample, reference, phase)
-        data_status_blocks: list of `FileBlockInfo` that contain metadata specific to a data block (units, etc.)
-        param_blocks: list of `FileBlockInfo` that contain metadata about the measurement sample
-        rf_param_blocks: list of `FileBlockInfo` that contain metatdata about the reference measurement
-        directory_block: `FileBlockInfo` for directory block that contains all the block info in the file
-        file_log_block: `FileBlockInfo` of the file log (changes, etc.)
-        data_and_status_block_pairs: (data: `FileBlockInfo`, data_status: `FileBlockInfo`) which pairs the data status
-            parameter block (time, x units, y units, etc.) with the data block it informs
-    '''
-
-    __slots__ = ('version', 'start', 'max_blocks', 'num_blocks', 'data_blocks', 'data_status_blocks', 'param_blocks',
-                 'rf_param_blocks', 'directory_block', 'file_log_block', 'data_and_status_block_pairs')
-
-    def __init__(self, filebytes: bytes):
-        self.version, self.start, self.max_blocks, self.num_blocks = parse_header(filebytes)
-        self.data_blocks: list = []
-        self.data_status_blocks: list = []
-        self.param_blocks: list = []
-        self.rf_param_blocks: list = []
-        self.directory_block: FileBlockInfo
-        self.file_log_block: FileBlockInfo
-        for block_type, size, start in parse_directory(filebytes, self.start, self.num_blocks):
-            block = FileBlockInfo(block_type=block_type, size=size, start=start)
-            if block.is_data_status():
-                self.data_status_blocks.append(block)
-            elif block.is_rf_param():
-                self.rf_param_blocks.append(block)
-            elif block.is_param():
-                self.param_blocks.append(block)
-            elif block.is_directory():
-                self.directory_block = block
-            elif block.is_file_log():
-                self.file_log_block = block
-            elif block.is_valid():
-                self.data_blocks.append(block)
-        self.data_and_status_block_pairs = []
-        self._pair_data_and_status_blocks()
-
-    def __str__(self):
-        data_keys = [b.get_data_key() for b in self.data_blocks]
-        data_str = ', '.join(data_keys)
-        return 'File Directory: ' + str(self.num_blocks) + ' total blocks; data blocks: (' + data_str + ')'
-
-    def _pair_data_and_status_blocks(self):
-        for data_block in self.data_blocks:
-            status_matches = [block for block in self.data_status_blocks if block.is_data_status_match(data_block)]
-            if len(status_matches) == 0:
-                text = 'Warning: No data status block match for data block: ' + str(data_block)
-                + '\n\tdata block will be ignored.'
-                warnings.warn(text)
-            elif len(status_matches) > 1:
-                text = 'Warning: Multiple data status block matches for data block: ' + str(data_block)
-                + '\n\tMatches:' + '; '.join([str(match) for match in status_matches])
-                + '\n\tdata block will be ignored.'
-                warnings.warn(text)
-            else:
-                self.data_and_status_block_pairs.append((data_block, status_matches[0]))
-
-
-class Parameters:
-    '''Class containing parameter metadata of an OPUS file.
-
-    Parameters of an OPUS file are stored as key, val pairs, where the key is always three chars.  For example, the
-    beamsplitter is stored in the "bms" attribute, source in "src" etc.  A list of known keys, with friendly label can
-    be found in `brukeropus.file.constants.PARAM_LABELS`.  The keys in an OPUS file are not case sensitive, and stored
-    in all CAPS (i.e. `BMS`, `SRC`, etc.) but this class uses lower case keys to follow python convention.  The class is
-    initialized from a list of parameter `FileBlockInfo`.  The key, val items in blocks of the list are combined into
-    one parameter class, so care must be taken not to pass blocks that will overwrite each others keys.  Analagous to a
-    dict, the keys, values, and (key, val) can be iterated over using the functions: `keys()`, `values()`, and `items()`
-    respectively.
-
-    Args:
-        filebytes: raw bytes from OPUS file. see: `brukeropus.file.parser.read_opus_file_bytes`
-        param_blocks: list of `FileBlockInfo`; every block in the list should be classified as a parameter block.
-
-    Attributes:
-        xxx: parameter attributes are stored as three char keys. Which keys are generated depends on the list of
-            `FileBlockInfo` that is used to initialize the class. If input list contains a single data status
-            `FileBlockInfo`, attributes will include: `fxv`, `lxv`, `npt` (first x-val, last x-val, number of points),
-            etc. Other blocks produce attributes such as: `bms`, `src`, `apt` (beamsplitter, source, aperture) etc. A
-            full list of keys available in a given Parameters instance are given by the `keys()` method.
-        datetime: if blocks contain the keys: `dat` (date) and `tim` (time), the `datetime` attribute of this class will
-            be set to a python `datetime` object. Currently, only data status blocks are known to have these keys. If
-            `dat` and `tim` are not present in the class, the `datetime` attribute will return `None`.
-    '''
-    __slots__ = ('_params', 'datetime')
-
-    def __init__(self, filebytes: bytes, param_blocks: list):
-        self._params = dict()
-        for block_info in param_blocks:
-            params = {key.lower(): val for key, val in parse_param_block(filebytes, block_info.size, block_info.start)}
-            self._params.update(params)
-            block_info.keys = tuple(params.keys())
-        self._set_datetime()
-
-    def __getattr__(self, name):
-        if name.lower() in self.keys():
-            return self._params[name.lower()]
-        else:
-            text = str(name) + ' not a valid attribute. For list of valid parameter keys, use: .keys()'
-            raise AttributeError(text)
-
-    def __getitem__(self, item):
-        return self._params.__getitem__(item)
-
-    def _set_datetime(self):
-        if 'dat' in self.keys() and 'tim' in self.keys():
-            date_str = self.dat
-            time_str = self.tim
-            dt_str = date_str + '-' + time_str[:time_str.index(' (')]
-            fmt = '%d/%m/%Y-%H:%M:%S.%f'
-            dt = datetime.datetime.strptime(dt_str, fmt)
-            self.datetime = dt
-        else:
-            self.datetime = None
-
-    def keys(self):
-        '''Returns a `dict_keys` class of all valid keys in the class (i.e. dict.keys())'''
-        return self._params.keys()
-
-    def values(self):
-        '''Returns a `dict_values` class of all the values in the class (i.e. dict.values())'''
-        return self._params.values()
-
-    def items(self):
-        '''Returns a `dict_items` class of all the values in the class (i.e. dict.items())'''
-        return self._params.items()
-
-
 class Data:
     '''Class containing array data and associated parameter/metadata from an OPUS file.
 
@@ -493,3 +253,243 @@ class Data3D(Data):
             if key not in ['y', 'version', 'offset', 'num_blocks', 'data_size', 'info_size']:
                 self.params._params[key] = val
         self.label = data_info.get_label()
+
+
+class Parameters:
+    '''Class containing parameter metadata of an OPUS file.
+
+    Parameters of an OPUS file are stored as key, val pairs, where the key is always three chars.  For example, the
+    beamsplitter is stored in the "bms" attribute, source in "src" etc.  A list of known keys, with friendly label can
+    be found in `brukeropus.file.constants.PARAM_LABELS`.  The keys in an OPUS file are not case sensitive, and stored
+    in all CAPS (i.e. `BMS`, `SRC`, etc.) but this class uses lower case keys to follow python convention.  The class is
+    initialized from a list of parameter `FileBlockInfo`.  The key, val items in blocks of the list are combined into
+    one parameter class, so care must be taken not to pass blocks that will overwrite each others keys.  Analagous to a
+    dict, the keys, values, and (key, val) can be iterated over using the functions: `keys()`, `values()`, and `items()`
+    respectively.
+
+    Args:
+        filebytes: raw bytes from OPUS file. see: `brukeropus.file.parser.read_opus_file_bytes`
+        param_blocks: list of `FileBlockInfo`; every block in the list should be classified as a parameter block.
+
+    Attributes:
+        xxx: parameter attributes are stored as three char keys. Which keys are generated depends on the list of
+            `FileBlockInfo` that is used to initialize the class. If input list contains a single data status
+            `FileBlockInfo`, attributes will include: `fxv`, `lxv`, `npt` (first x-val, last x-val, number of points),
+            etc. Other blocks produce attributes such as: `bms`, `src`, `apt` (beamsplitter, source, aperture) etc. A
+            full list of keys available in a given Parameters instance are given by the `keys()` method.
+        datetime: if blocks contain the keys: `dat` (date) and `tim` (time), the `datetime` attribute of this class will
+            be set to a python `datetime` object. Currently, only data status blocks are known to have these keys. If
+            `dat` and `tim` are not present in the class, the `datetime` attribute will return `None`.
+    '''
+    __slots__ = ('_params', 'datetime')
+
+    def __init__(self, filebytes: bytes, param_blocks: list):
+        self._params = dict()
+        for block_info in param_blocks:
+            params = {key.lower(): val for key, val in parse_param_block(filebytes, block_info.size, block_info.start)}
+            self._params.update(params)
+            block_info.keys = tuple(params.keys())
+        self._set_datetime()
+
+    def __getattr__(self, name):
+        if name.lower() in self.keys():
+            return self._params[name.lower()]
+        else:
+            text = str(name) + ' not a valid attribute. For list of valid parameter keys, use: .keys()'
+            raise AttributeError(text)
+
+    def __getitem__(self, item):
+        return self._params.__getitem__(item)
+
+    def _set_datetime(self):
+        if 'dat' in self.keys() and 'tim' in self.keys():
+            date_str = self.dat
+            time_str = self.tim
+            dt_str = date_str + '-' + time_str[:time_str.index(' (')]
+            fmt = '%d/%m/%Y-%H:%M:%S.%f'
+            dt = datetime.datetime.strptime(dt_str, fmt)
+            self.datetime = dt
+        else:
+            self.datetime = None
+
+    def keys(self):
+        '''Returns a `dict_keys` class of all valid keys in the class (i.e. dict.keys())'''
+        return self._params.keys()
+
+    def values(self):
+        '''Returns a `dict_values` class of all the values in the class (i.e. dict.values())'''
+        return self._params.values()
+
+    def items(self):
+        '''Returns a `dict_items` class of all the values in the class (i.e. dict.items())'''
+        return self._params.items()
+
+
+class FileDirectory:
+    '''Contains type and pointer information for all blocks of data in an OPUS file.
+
+    `FileDirectory` information is decoded from the raw file bytes of an OPUS file. First the header is read which
+    provides the start location of the directory block, number of blocks in file, and maximum number of blocks the file
+    supports. Then if decodes the block pointer information from each entry of the file's directory block. Rather than
+    store all file blocks in a single list (as it is done in the OPUS file directory), this class sorts the blocks into
+    categories: `data`, `data_status`, `params`, `rf_params`, `directory`, and `file_log`.  It also pairs the data
+    blocks with their corresponding `data_status` block to simplify grouping y data with the parameters that are used to
+    generate x data and other data block specific metadata.
+
+    Args:
+        filebytes: raw bytes from OPUS file. see: `brukeropus.file.parser.read_opus_file_bytes`
+
+    Attributes:
+        start: pointer to start location of the directory block
+        max_blocks: maximum number of blocks supported by file
+        num_blocks: total number of blocks in the file
+        data_blocks: list of `FileBlockInfo` that contain array data (e.g. sample, reference, phase)
+        data_status_blocks: list of `FileBlockInfo` that contain metadata specific to a data block (units, etc.)
+        param_blocks: list of `FileBlockInfo` that contain metadata about the measurement sample
+        rf_param_blocks: list of `FileBlockInfo` that contain metatdata about the reference measurement
+        directory_block: `FileBlockInfo` for directory block that contains all the block info in the file
+        file_log_block: `FileBlockInfo` of the file log (changes, etc.)
+        data_and_status_block_pairs: (data: `FileBlockInfo`, data_status: `FileBlockInfo`) which pairs the data status
+            parameter block (time, x units, y units, etc.) with the data block it informs
+    '''
+
+    __slots__ = ('version', 'start', 'max_blocks', 'num_blocks', 'data_blocks', 'data_status_blocks', 'param_blocks',
+                 'rf_param_blocks', 'directory_block', 'file_log_block', 'data_and_status_block_pairs')
+
+    def __init__(self, filebytes: bytes):
+        self.version, self.start, self.max_blocks, self.num_blocks = parse_header(filebytes)
+        self.data_blocks: list = []
+        self.data_status_blocks: list = []
+        self.param_blocks: list = []
+        self.rf_param_blocks: list = []
+        self.directory_block: FileBlockInfo
+        self.file_log_block: FileBlockInfo
+        for block_type, size, start in parse_directory(filebytes, self.start, self.num_blocks):
+            block = FileBlockInfo(block_type=block_type, size=size, start=start)
+            if block.is_data_status():
+                self.data_status_blocks.append(block)
+            elif block.is_rf_param():
+                self.rf_param_blocks.append(block)
+            elif block.is_param():
+                self.param_blocks.append(block)
+            elif block.is_directory():
+                self.directory_block = block
+            elif block.is_file_log():
+                self.file_log_block = block
+            elif block.is_valid():
+                self.data_blocks.append(block)
+        self.data_and_status_block_pairs = []
+        self._pair_data_and_status_blocks()
+
+    def __str__(self):
+        data_keys = [b.get_data_key() for b in self.data_blocks]
+        data_str = ', '.join(data_keys)
+        return 'File Directory: ' + str(self.num_blocks) + ' total blocks; data blocks: (' + data_str + ')'
+
+    def _pair_data_and_status_blocks(self):
+        for data_block in self.data_blocks:
+            status_matches = [block for block in self.data_status_blocks if block.is_data_status_match(data_block)]
+            if len(status_matches) == 0:
+                text = 'Warning: No data status block match for data block: ' + str(data_block)
+                + '\n\tdata block will be ignored.'
+                warnings.warn(text)
+            elif len(status_matches) > 1:
+                text = 'Warning: Multiple data status block matches for data block: ' + str(data_block)
+                + '\n\tMatches:' + '; '.join([str(match) for match in status_matches])
+                + '\n\tdata block will be ignored.'
+                warnings.warn(text)
+            else:
+                self.data_and_status_block_pairs.append((data_block, status_matches[0]))
+
+
+class FileBlockInfo:
+    '''Contains type, size and location information about an OPUS file block.
+
+    This information is parsed from the directory block of an OPUS file and provides the information needed to parse the
+    block.
+
+    Args:
+        block_type: six integer tuple that describes the type of data in the file block
+        size: size of block in number of bytes
+        start: pointer to start location of the block within the file.
+
+    Attributes:
+        type: six integer tuple that describes the type of data in the file block
+        size: size of block in number of bytes
+        start: pointer to start location of the block within the file
+        keys: tuple of three char keys contained in parameter blocks. This attribute is set by the OPUSFile class only
+            when the block is parameter block. This enables grouping parameters by block if desired.
+    '''
+
+    __slots__ = ('type', 'size', 'start', 'keys')
+
+    keys: tuple
+
+    def __init__(self, block_type: tuple, size: int, start: int):
+        self.type = block_type
+        self.size = size
+        self.start = start
+
+    def __str__(self):
+        label = self.get_label()
+        return 'Block Info: ' + label + ' (size: ' + str(self.size) + ' bytes; start: ' + str(self.start) + ')'
+
+    def is_valid(self):
+        '''Returns False if FileBlockInfo is undefined (i.e. FileBlockInfo.type == (0, 0, 0, 0, 0, 0))'''
+        return self.type != (0, 0, 0, 0, 0, 0)
+
+    def is_data_status(self):
+        '''Returns True if FileBlockInfo is a data status parameter block'''
+        return self.type[2] == 1
+
+    def is_rf_param(self):
+        '''Returns True if FileBlockInfo is a parameter block associated with the reference measurement'''
+        return self.type[2] > 1 and self.type[1] == 2
+
+    def is_param(self):
+        '''Returns True if FileBlockInfo is a parameter block'''
+        return self.type[2] > 1
+
+    def is_directory(self):
+        '''Returns True if FileBlockInfo is the directory block'''
+        return self.type == (0, 0, 0, 13, 0, 0)
+
+    def is_file_log(self):
+        '''Returns True if FileBlockInfo is the file log block'''
+        return self.type == (0, 0, 0, 0, 0, 5)
+
+    def is_data(self):
+        '''Returns True if FileBlockInfo is a data block or 3D data block'''
+        return self.type[2] == 0 and self.type[3] > 0 and self.type[3] != 13
+
+    def is_3d_data(self):
+        '''Returns True if FileBlockInfo is a 3D data block (i.e. data series)'''
+        return self.is_data() and self.type[5] == 2
+
+    def is_data_status_match(self, data_block_info):
+        '''Returns True if FileBlockInfo is a data status block and a match to the data_block_info argument.
+
+        This function is used to match a data status block (contains metadata for data block) with its associated data
+        block (contains array data).
+
+        Args:
+            data_block_info (FileBlockInfo):  data block being tested as a match.
+
+        Returns:
+            is_match (bool): True if FileBlockInfo is data status block and input argument is matching data block'''
+        if self.is_data_status():
+            return data_block_info.type[:2] == self.type[:2] and data_block_info.type[3:] == self.type[3:]
+
+    def get_label(self):
+        '''Returns a friendly string label that describes the block type'''
+        return get_block_type_label(self.type)
+
+    def get_data_key(self):
+        '''If block is a data block, this function will return an shorthand key to reference that data.
+
+        e.g. t: transmission, a: absorption, sm: sample, rf: reference, smph: sample phase etc. If the block is not
+        a data block, it will return None.'''
+        if self.is_data():
+            return get_data_key(self.type)
+        else:
+            return None
