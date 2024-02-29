@@ -142,6 +142,99 @@ class OPUSFile:
             yield getattr(self, key)
 
 
+class FileBlockInfo:
+    '''Contains type, size and location information about an OPUS file block.
+
+    This information is parsed from the directory block of an OPUS file and provides the information needed to parse the
+    block.
+
+    Args:
+        block_type: six integer tuple that describes the type of data in the file block
+        size: size of block in number of bytes
+        start: pointer to start location of the block within the file.
+
+    Attributes:
+        type: six integer tuple that describes the type of data in the file block
+        size: size of block in number of bytes
+        start: pointer to start location of the block within the file
+        keys: tuple of three char keys contained in parameter blocks. This attribute is set by the OPUSFile class only
+            when the block is parameter block. This enables grouping parameters by block if desired.
+    '''
+
+    __slots__ = ('type', 'size', 'start', 'keys')
+
+    keys: tuple
+
+    def __init__(self, block_type: tuple, size: int, start: int):
+        self.type = block_type
+        self.size = size
+        self.start = start
+
+    def __str__(self):
+        label = self.get_label()
+        return 'Block Info: ' + label + ' (size: ' + str(self.size) + ' bytes; start: ' + str(self.start) + ')'
+
+    def is_valid(self):
+        '''Returns False if FileBlockInfo is undefined (i.e. FileBlockInfo.type == (0, 0, 0, 0, 0, 0))'''
+        return self.type != (0, 0, 0, 0, 0, 0)
+
+    def is_data_status(self):
+        '''Returns True if FileBlockInfo is a data status parameter block'''
+        return self.type[2] == 1
+
+    def is_rf_param(self):
+        '''Returns True if FileBlockInfo is a parameter block associated with the reference measurement'''
+        return self.type[2] > 1 and self.type[1] == 2
+
+    def is_param(self):
+        '''Returns True if FileBlockInfo is a parameter block'''
+        return self.type[2] > 1
+
+    def is_directory(self):
+        '''Returns True if FileBlockInfo is the directory block'''
+        return self.type == (0, 0, 0, 13, 0, 0)
+
+    def is_file_log(self):
+        '''Returns True if FileBlockInfo is the file log block'''
+        return self.type == (0, 0, 0, 0, 0, 5)
+
+    def is_data(self):
+        '''Returns True if FileBlockInfo is a data block or 3D data block'''
+        return self.type[2] == 0 and self.type[3] > 0 and self.type[3] != 13
+
+    def is_3d_data(self):
+        '''Returns True if FileBlockInfo is a 3D data block (i.e. data series)'''
+        return self.is_data() and self.type[5] == 2
+
+    def is_data_status_match(self, data_block_info):
+        '''Returns True if FileBlockInfo is a data status block and a match to the data_block_info argument.
+
+        This function is used to match a data status block (contains metadata for data block) with its associated data
+        block (contains array data).
+
+        Args:
+            data_block_info (FileBlockInfo):  data block being tested as a match.
+
+        Returns:
+            is_match (bool): True if FileBlockInfo is data status block and input argument is matching data block'''
+        if self.is_data_status():
+            return data_block_info.type[:2] == self.type[:2] and data_block_info.type[3:] == self.type[3:]
+
+    def get_label(self):
+        '''Returns a friendly string label that describes the block type'''
+        return get_block_type_label(self.type)
+
+    def get_data_key(self):
+        '''If block is a data block, this function will return an shorthand key to reference that data.
+
+        e.g. t: transmission, a: absorption, sm: sample, rf: reference, smph: sample phase etc. If the block is not
+        a data block, it will return None.'''
+        if self.is_data():
+            return get_data_key(self.type)
+        else:
+            return None
+
+
 class Data:
     '''Class containing array data and associated parameter/metadata from an OPUS file.
 
@@ -400,96 +493,3 @@ class FileDirectory:
                 warnings.warn(text)
             else:
                 self.data_and_status_block_pairs.append((data_block, status_matches[0]))
-
-
-class FileBlockInfo:
-    '''Contains type, size and location information about an OPUS file block.
-
-    This information is parsed from the directory block of an OPUS file and provides the information needed to parse the
-    block.
-
-    Args:
-        block_type: six integer tuple that describes the type of data in the file block
-        size: size of block in number of bytes
-        start: pointer to start location of the block within the file.
-
-    Attributes:
-        type: six integer tuple that describes the type of data in the file block
-        size: size of block in number of bytes
-        start: pointer to start location of the block within the file
-        keys: tuple of three char keys contained in parameter blocks. This attribute is set by the OPUSFile class only
-            when the block is parameter block. This enables grouping parameters by block if desired.
-    '''
-
-    __slots__ = ('type', 'size', 'start', 'keys')
-
-    keys: tuple
-
-    def __init__(self, block_type: tuple, size: int, start: int):
-        self.type = block_type
-        self.size = size
-        self.start = start
-
-    def __str__(self):
-        label = self.get_label()
-        return 'Block Info: ' + label + ' (size: ' + str(self.size) + ' bytes; start: ' + str(self.start) + ')'
-
-    def is_valid(self):
-        '''Returns False if FileBlockInfo is undefined (i.e. FileBlockInfo.type == (0, 0, 0, 0, 0, 0))'''
-        return self.type != (0, 0, 0, 0, 0, 0)
-
-    def is_data_status(self):
-        '''Returns True if FileBlockInfo is a data status parameter block'''
-        return self.type[2] == 1
-
-    def is_rf_param(self):
-        '''Returns True if FileBlockInfo is a parameter block associated with the reference measurement'''
-        return self.type[2] > 1 and self.type[1] == 2
-
-    def is_param(self):
-        '''Returns True if FileBlockInfo is a parameter block'''
-        return self.type[2] > 1
-
-    def is_directory(self):
-        '''Returns True if FileBlockInfo is the directory block'''
-        return self.type == (0, 0, 0, 13, 0, 0)
-
-    def is_file_log(self):
-        '''Returns True if FileBlockInfo is the file log block'''
-        return self.type == (0, 0, 0, 0, 0, 5)
-
-    def is_data(self):
-        '''Returns True if FileBlockInfo is a data block or 3D data block'''
-        return self.type[2] == 0 and self.type[3] > 0 and self.type[3] != 13
-
-    def is_3d_data(self):
-        '''Returns True if FileBlockInfo is a 3D data block (i.e. data series)'''
-        return self.is_data() and self.type[5] == 2
-
-    def is_data_status_match(self, data_block_info):
-        '''Returns True if FileBlockInfo is a data status block and a match to the data_block_info argument.
-
-        This function is used to match a data status block (contains metadata for data block) with its associated data
-        block (contains array data).
-
-        Args:
-            data_block_info (FileBlockInfo):  data block being tested as a match.
-
-        Returns:
-            is_match (bool): True if FileBlockInfo is data status block and input argument is matching data block'''
-        if self.is_data_status():
-            return data_block_info.type[:2] == self.type[:2] and data_block_info.type[3:] == self.type[3:]
-
-    def get_label(self):
-        '''Returns a friendly string label that describes the block type'''
-        return get_block_type_label(self.type)
-
-    def get_data_key(self):
-        '''If block is a data block, this function will return an shorthand key to reference that data.
-
-        e.g. t: transmission, a: absorption, sm: sample, rf: reference, smph: sample phase etc. If the block is not
-        a data block, it will return None.'''
-        if self.is_data():
-            return get_data_key(self.type)
-        else:
-            return None
