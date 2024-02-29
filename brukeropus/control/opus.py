@@ -35,13 +35,14 @@ class Opus:
 
     def connect(self):
         '''Connects class to OPUS software through the DDE interface.  Sets the `connected` attribute to `True` if
-        successful.'''
+        successful.  By default, initializing an `Opus` class will automatically attempt to connect to OPUS.'''
         try:
             self.dde = DDEClient("Opus", "System")
             self.connected = True
         except Exception as e:
-            warnings.warn("Warning - Unable to connect to OPUS Software: " + str(e))
             self.connected = False
+            warning_text = "Failed to connect to OPUS Software: " + str(e)
+            warnings.warn(warning_text, stacklevel=2)
     
     def request(self, req_str, timeout=10000):
         byte_response = self.dde.request(req_str, timeout)
@@ -69,7 +70,7 @@ class Opus:
         
         return self.request('SendCommand(0, {UNI=' + text_command + '})')
     
-    def unload(self, filepath):
+    def unload_file(self, filepath):
         '''Unloads a file from the OPUS software from its `filepath`'''
         self.request('UNLOAD_FILE "' + filepath + '"')
     
@@ -99,7 +100,7 @@ class Opus:
         output = self.request('MeasureSample(0,' + params + ')', timeout=timeout)
         filepath = output[2][1:-3]
         if unload:
-            self.unload(filepath)
+            self.unload_file(filepath)
         return filepath
     
     def check_signal(self, nss=1, **kwargs):
