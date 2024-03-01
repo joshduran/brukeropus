@@ -395,7 +395,7 @@ class Parameters:
         self._set_datetime()
 
     def __getattr__(self, name):
-        if name.lower() in self.keys():
+        if name.lower() in self._params.keys():
             return self._params[name.lower()]
         else:
             text = str(name) + ' not a valid attribute. For list of valid parameter keys, use: .keys()'
