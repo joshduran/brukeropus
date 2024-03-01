@@ -97,6 +97,7 @@ class OPUSFile:
                     data_class = Data(filebytes, data, status)
                     if len(data_class.y) < data_class.npt:
                         break  # Don't add data blocks with missing points (rare but observed)
+                data_class.vel = self.params.vel
                 setattr(self, key, data_class)
                 self.data_keys.append(key)
 
@@ -258,12 +259,15 @@ class Data:
         **wl:** Returns the x array in wavelength (µm) units regardless of what units the x array was originally
             saved in. This is only valid for spectral data blocks such as sample, reference, transmission, etc., not
             interferogram or phase blocks.  
+        **f:** Returns the x array in modulation frequency units (Hz) regardless of what units the x array was
+            originally saved in. This is only valid for spectral data blocks such as sample, reference, transmission,
+            etc., not interferogram or phase blocks.  
         **datetime:** Returns a `datetime` class of when the data was taken (extracted from data status parameter block).  
         **xxx:** the various three char parameter keys from the `params` attribute can be directly called from the 
             `Data` class for convenience. Common parameters include `dxu` (x units), `mxy` (max y value), `mny` (min y
             value), etc.  
     '''
-    __slots__ = ('_key', 'params', 'y', 'x', 'label')
+    __slots__ = ('_key', 'params', 'y', 'x', 'label', 'vel')
 
     def __init__(self, filebytes: bytes, data_info: FileBlockInfo, data_status_info: FileBlockInfo):
         self._key = data_info.get_data_key()
@@ -278,6 +282,8 @@ class Data:
             return self._get_wn()
         elif name.lower() == 'wl' and self.params.dxu in ('WN', 'MI', 'LGW'):
             return self._get_wl()
+        elif name.lower() == 'f' and self.params.dxu in ('WN', 'MI', 'LGW'):
+            return self._get_freq()
         elif name.lower() in self.params.keys():
             return getattr(self.params, name.lower())
         elif name == 'datetime':
@@ -301,6 +307,10 @@ class Data:
             return self.x
         elif self.params.dxu == 'LGW':
             return 10000 / np.exp(self.x)
+    
+    def _get_freq(self):
+        vel = 1000 * np.float(self.vel) / 7900  # cm/s
+        return vel * self.wn
 
 
 class Data3D(Data):
