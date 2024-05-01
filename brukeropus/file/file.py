@@ -97,7 +97,8 @@ class OPUSFile:
                     data_class = Data(filebytes, data, status)
                     if len(data_class.y) < data_class.npt:
                         break  # Don't add data blocks with missing points (rare but observed)
-                data_class.vel = self.params.vel
+                if 'vel' in self.params.keys():
+                    data_class.vel = self.params.vel
                 setattr(self, key, data_class)
                 self.data_keys.append(key)
 
@@ -276,6 +277,7 @@ class Data:
         self.y = y[:self.params.npt]    # Trim extra values on some spectra
         self.x = np.linspace(self.params.fxv, self.params.lxv, self.params.npt)
         self.label = data_info.get_label()
+        self.vel = 0
 
     def __getattr__(self, name):
         if name.lower() == 'wn' and self.params.dxu in ('WN', 'MI', 'LGW'):
@@ -433,7 +435,7 @@ class FileDirectory:
 
     `FileDirectory` information is decoded from the raw file bytes of an OPUS file. First the header is read which
     provides the start location of the directory block, number of blocks in file, and maximum number of blocks the file
-    supports. Then if decodes the block pointer information from each entry of the file's directory block. Rather than
+    supports. Then it decodes the block pointer information from each entry of the file's directory block. Rather than
     store all file blocks in a single list (as it is done in the OPUS file directory), this class sorts the blocks into
     categories: `data`, `data_status`, `params`, `rf_params`, `directory`, and `file_log`.  It also pairs the data
     blocks with their corresponding `data_status` block to simplify grouping y data with the parameters that are used to

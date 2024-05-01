@@ -1,10 +1,9 @@
 # Python DDE interface by David Naylor, http://code.activestate.com/recipes/577654-dde-client/
-# Slightly modified to work with python 3
-# Send DDE Execute command to running program
+# Slightly modified to work with python 3 and streamline the code a bit
 # I do not understand how this works, just use it for sending/recieving DDE communication through OPUS
 
-from ctypes import POINTER, WINFUNCTYPE, c_char_p, c_void_p, c_int, c_ulong, c_char_p
-from ctypes.wintypes import BOOL, DWORD, BYTE, INT, LPCWSTR, UINT, ULONG
+from ctypes import POINTER, WINFUNCTYPE, c_char_p, c_void_p, c_int, c_ulong, c_char_p, byref, windll, create_string_buffer
+from ctypes.wintypes import BOOL, DWORD, BYTE, INT, LPCWSTR, UINT, ULONG, HWND, MSG
 
 # DECLARE_HANDLE(name) typedef void *name;
 HCONV     = c_void_p  # = DECLARE_HANDLE(HCONV)
@@ -88,8 +87,6 @@ TIMEOUT_ASYNC        = 0xFFFFFFFF
 
 def get_winfunc(libname, funcname, restype=None, argtypes=(), _libcache={}):
     """Retrieve a function from a library, and set the data types."""
-    from ctypes import windll
-
     if libname not in _libcache:
         _libcache[libname] = windll.LoadLibrary(libname)
     func = getattr(_libcache[libname], funcname)
@@ -133,8 +130,6 @@ class DDEClient(object):
 
     def __init__(self, service, topic):
         """Create a connection to a service/topic."""
-        from ctypes import byref
-
         self._idInst = DWORD(0)
         self._hConv = HCONV()
 
@@ -160,8 +155,6 @@ class DDEClient(object):
 
     def advise(self, item, stop=False):
         """Request updates when DDE data changes."""
-        from ctypes import byref
-
         hszItem = DDE.CreateStringHandle(self._idInst, item, 1200)
         hDdeData = DDE.ClientTransaction(LPBYTE(), 0, self._hConv, hszItem, CF_TEXT, XTYP_ADVSTOP if stop else XTYP_ADVSTART, TIMEOUT_ASYNC, LPDWORD())
         DDE.FreeStringHandle(self._idInst, hszItem)
@@ -180,8 +173,6 @@ class DDEClient(object):
 
     def request(self, item, timeout=5000):
         """Request data from DDE service."""
-        from ctypes import byref
-
         hszItem = DDE.CreateStringHandle(self._idInst, item, 1200)
         hDdeData = DDE.ClientTransaction(LPBYTE(), 0, self._hConv, hszItem, CF_TEXT, XTYP_REQUEST, timeout, LPDWORD())
         DDE.FreeStringHandle(self._idInst, hszItem)
@@ -204,9 +195,6 @@ class DDEClient(object):
         print("%s: %s" % (item, value))
 
     def _callback(self, wType, uFmt, hConv, hsz1, hsz2, hDdeData, dwData1, dwData2):
-        if wType == XTYP_ADVDATA:
-            from ctypes import byref, create_string_buffer
-
         dwSize = DWORD(0)
         pData = DDE.AccessData(hDdeData, byref(dwSize))
         if pData:
@@ -219,9 +207,6 @@ class DDEClient(object):
 
 def WinMSGLoop():
     """Run the main windows message loop."""
-    from ctypes import POINTER, byref, c_ulong
-    from ctypes.wintypes import BOOL, HWND, MSG, UINT
-
     LPMSG = POINTER(MSG)
     LRESULT = c_ulong
     GetMessage = get_winfunc("user32", "GetMessageW", BOOL, (LPMSG, HWND, UINT, UINT))
@@ -246,5 +231,5 @@ if __name__ == "__main__":
     # Test with OPUS
     # make sure OPUS software is open
     dde = DDEClient("Opus", "System")
-    print(dde.request("GET_LANGUAGE"))
+    print(dde.request("GET_VERSION_EXTENDED"))
 

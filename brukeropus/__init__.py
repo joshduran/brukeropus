@@ -1,7 +1,6 @@
 '''
 `brukeropus` is a Python package for interacting with Bruker's OPUS spectroscopy software. Currently, the package can
-read OPUS data files, but the intention is for future releases to introduce new functionality (e.g. controlling OPUS
-for scripting measurements)
+read OPUS data files and communicate/control OPUS software using the DDE communication protocol)
 
 ### Installation
 `brukeropus` requires `python 3.6+` and `numpy`, but `matplotlib` is needed to run the plotting examples.  You can
@@ -13,9 +12,9 @@ pip install brukeropus
 ### Namespace
 `brukeropus` provides direct imports to the following:
 ```python
-from brukeropus import find_opus_files, read_opus, OPUSFile
+from brukeropus import find_opus_files, read_opus, OPUSFile, Opus
 ```
-All other file functions can be directly imported from the `brukeropus.file` submodule, e.g.:
+All other file functions or classes can be directly imported from the `brukeropus.file` submodule, e.g.:
 ```python
 from brukeropus.file import parse_file_and_print
 ```
@@ -40,6 +39,24 @@ if 'a' in opus_file.data_keys:  # If absorbance spectra was extracted from file
     plt.show()  # Display plot
 ```
 More detailed documentation on the file submodule can be found in `brukeropus.file`
+
+### Controlling OPUS Software (Basic Usage)
+```python
+from brukeropus import opus, read_opus
+from matplotlib import pyplot as plt
+
+opus = Opus()  # Connects to actively running OPUS software
+
+apt_options = opus.get_param_options('apt') # Get all valid aperture settings
+
+for apt in apt_options[2:-2]: # Loop over all but the two smallest and two largest aperature settings
+    filepath = opus.measure_sample(apt=apt, nss=10, unload=True) # Perform measurement and unload file from OPUS
+    data = read_opus(filepath) # Read OPUS file from measurement
+    plt.plot(data.sm.x, data.sm.y, label=apt) # Plot single-channel sample spectra
+plt.legend()
+plt.show()
+```
+More detailed documentation on the control submodule can be found in `brukeropus.control`.
 '''
 
 from brukeropus.file import OPUSFile, read_opus, find_opus_files
