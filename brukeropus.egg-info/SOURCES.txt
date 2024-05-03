@@ -5,6 +5,7 @@ brukeropus/__init__.py
 brukeropus.egg-info/PKG-INFO
 brukeropus.egg-info/SOURCES.txt
 brukeropus.egg-info/dependency_links.txt
+brukeropus.egg-info/requires.txt
 brukeropus.egg-info/top_level.txt
 brukeropus/control/__init__.py
 brukeropus/control/dde.py

@@ -13,6 +13,7 @@ Classifier: Topic :: Scientific/Engineering
 Requires-Python: >=3.6
 Description-Content-Type: text/markdown
 License-File: LICENSE
+Requires-Dist: numpy
 
 # Bruker OPUS
 `brukeropus` is a Python package for interacting with Bruker's OPUS spectroscopy software. Currently, the package can
