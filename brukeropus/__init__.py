@@ -14,7 +14,8 @@ pip install brukeropus
 ```python
 from brukeropus import find_opus_files, read_opus, OPUSFile, Opus
 ```
-All other file functions or classes can be directly imported from the `brukeropus.file` submodule, e.g.:
+All other file functions or classes can be directly imported from the `brukeropus.file` or `brukeropus.control`
+submodules, e.g.:
 ```python
 from brukeropus.file import parse_file_and_print
 ```
