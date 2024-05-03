@@ -23,7 +23,7 @@ It is recommended that you do **not** import from the fully qualified namespace,
 ```python
 from brukeropus.file.utils import parse_file_and_print
 ```
-as that namespace is subject to change. Instead import directly from `brukeropus` or its submodule `brukeropus.file`.
+as that namespace is subject to change. Instead import directly from `brukeropus` or its first level submodules.
 
 ### Reading OPUS Files (Basic Usage)
 ```python
