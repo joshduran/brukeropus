@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: brukeropus
-Version: 1.0.0
+Version: 1.0.1
 Summary: A python package for communicating with Bruker OPUS spectroscopy software and reading its binary file format.
 Author-email: Josh Duran <josh.m.duran@gmail.com>
 Project-URL: Homepage, https://github.com/joshduran/brukeropus
