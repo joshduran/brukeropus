@@ -21,3 +21,4 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/joshduran/brukeropus"
 Issues = "https://github.com/joshduran/brukeropus/issues"
+Documentation = "https://joshduran.github.io/brukeropus/brukeropus.html"
