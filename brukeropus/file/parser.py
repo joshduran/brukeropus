@@ -144,9 +144,9 @@ def parse_param_block(filebytes: bytes, size: int, start: int):
             if 's' in fmt_str:
                 x00_pos = val.find(b'\x00')
                 if x00_pos != -1:
-                    val = val[:x00_pos].decode('utf-8')
+                    val = val[:x00_pos].decode('latin-1')
                 else:
-                    val = val.decode('utf-8')
+                    val = val.decode('latin-1')
         except Exception as e:
             val = 'Failed to load: ' + str(e)
         yield key, val
