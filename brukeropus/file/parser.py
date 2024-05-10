@@ -271,10 +271,10 @@ def parse_file_log(filebytes: bytes, size: int, start: int):
     for entry in byte_strings:
         if entry != b'':
             try:
-                strings.append(entry.decode('utf-8'))
+                strings.append(entry.decode('latin-1'))
             except Exception:
                 try:
-                    strings.append(entry.decode('latin-1'))
+                    strings.append(entry.decode('utf-8'))
                 except Exception as e:
                     strings.append('<Decode Exception>: ' + str(e))
     return strings
