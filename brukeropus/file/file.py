@@ -161,6 +161,7 @@ class FileBlockInfo:
         start: pointer to start location of the block within the file
         keys: tuple of three char keys contained in parameter blocks. This attribute is set by the OPUSFile class only
             when the block is parameter block. This enables grouping parameters by block if desired.
+        bytes: raw bytes of file block (currently only set for unknown blocks)
     '''
 
     __slots__ = ('type', 'size', 'start', 'keys', 'bytes')
@@ -462,6 +463,7 @@ class FileDirectory:
         file_log_block: `FileBlockInfo` of the file log (changes, etc.)
         data_and_status_block_pairs: (data: `FileBlockInfo`, data_status: `FileBlockInfo`) which pairs the data status
             parameter block (time, x units, y units, etc.) with the data block it informs
+        unknown_blocks: list of `FileBlockInfo` with an unrecognized type (i.e. not sure how to parse)
     '''
 
     __slots__ = ('version', 'start', 'max_blocks', 'num_blocks', 'data_blocks', 'data_status_blocks', 'param_blocks',
