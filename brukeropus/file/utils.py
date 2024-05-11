@@ -218,7 +218,7 @@ def _parse_block_and_print(filebytes, block_info, width):
             print(array)
         else:
             _print_centered('Undefined Block Type: Raw Bytes', width)
-            print(filebytes[block_info[1]: block_info[1] + block_info[2]])
+            print(filebytes[block_info[2]: block_info[2] + block_info[1]])
 
 
 def _print_cols(vals, col_widths,):
