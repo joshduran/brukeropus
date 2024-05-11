@@ -186,7 +186,7 @@ class FileBlockInfo:
 
     def is_param(self):
         '''Returns True if FileBlockInfo is a parameter block'''
-        return self.type[2] > 1
+        return self.type[2] > 1 or self.type == (0, 0, 0, 0, 0, 1)
 
     def is_directory(self):
         '''Returns True if FileBlockInfo is the directory block'''
