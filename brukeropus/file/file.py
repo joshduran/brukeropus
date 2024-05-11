@@ -202,7 +202,7 @@ class FileBlockInfo:
 
     def is_data(self):
         '''Returns True if FileBlockInfo is a data block or 3D data block'''
-        return self.type[2] == 0 and self.type[3] > 0 and self.type[3] != 13
+        return self.type[0] > 0 and self.type[1] > 0 and self.type[2] == 0 and self.type[3] > 0
 
     def is_3d_data(self):
         '''Returns True if FileBlockInfo is a 3D data block (i.e. data series)'''
