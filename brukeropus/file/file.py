@@ -495,13 +495,13 @@ class FileDirectory:
         for data_block in self.data_blocks:
             status_matches = [block for block in self.data_status_blocks if block.is_data_status_match(data_block)]
             if len(status_matches) == 0:
-                text = 'Warning: No data status block match for data block: ' + str(data_block)
-                + '\n\tdata block will be ignored.'
+                text = 'Warning: No data status block match for data block: ' + str(data_block) \
+                    + '\n\tdata block will be ignored.'
                 warnings.warn(text)
             elif len(status_matches) > 1:
-                text = 'Warning: Multiple data status block matches for data block: ' + str(data_block)
-                + '\n\tMatches:' + '; '.join([str(match) for match in status_matches])
-                + '\n\tdata block will be ignored.'
+                text = 'Warning: Multiple data status block matches for data block: ' + str(data_block) \
+                    + '\n\tMatches:' + '; '.join([str(match) for match in status_matches]) \
+                    + '\n\tdata block will be ignored.'
                 warnings.warn(text)
             else:
                 self.data_and_status_block_pairs.append((data_block, status_matches[0]))
