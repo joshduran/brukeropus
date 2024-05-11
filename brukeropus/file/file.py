@@ -408,12 +408,22 @@ class Parameters:
 
     def _set_datetime(self):
         if 'dat' in self.keys() and 'tim' in self.keys():
-            date_str = self.dat
-            time_str = self.tim
-            dt_str = date_str + '-' + time_str[:time_str.index(' (')]
-            fmt = '%d/%m/%Y-%H:%M:%S.%f'
-            dt = datetime.datetime.strptime(dt_str, fmt)
-            self.datetime = dt
+            try:
+                date_str = self.dat
+                time_str = self.tim
+                dt_str = date_str + '-' + time_str[:time_str.index(' (')]
+                try:
+                    fmt = '%d/%m/%Y-%H:%M:%S.%f'
+                    dt = datetime.datetime.strptime(dt_str, fmt)
+                except:
+                    try:
+                        fmt = '%Y/%m/%d-%H:%M:%S.%f'
+                        dt = datetime.datetime.strptime(dt_str, fmt)
+                    except:
+                        self.datetime = None
+                self.datetime = dt
+            except:
+                self.datetime = None
         else:
             self.datetime = None
 
