@@ -163,7 +163,7 @@ class FileBlockInfo:
             when the block is parameter block. This enables grouping parameters by block if desired.
     '''
 
-    __slots__ = ('type', 'size', 'start', 'keys')
+    __slots__ = ('type', 'size', 'start', 'keys', 'bytes')
 
     keys: tuple
 
@@ -492,6 +492,7 @@ class FileDirectory:
             elif block.is_data():
                 self.data_blocks.append(block)
             else:
+                block.bytes = filebytes[block.start:block.start + block.size]
                 self.unknown_blocks.append(block)
         self.data_and_status_block_pairs = []
         self._pair_data_and_status_blocks()
