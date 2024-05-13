@@ -4,7 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "brukeropus"
+<<<<<<< HEAD
 version = "1.0.3"
+=======
+version = "1.0.4"
+>>>>>>> origin/master
 authors = [
   { name="Josh Duran", email="josh.m.duran@gmail.com" },
 ]

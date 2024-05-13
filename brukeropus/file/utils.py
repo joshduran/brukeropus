@@ -199,7 +199,7 @@ def _parse_block_and_print(filebytes, block_info, width):
     param_col_labels = ('Key', 'Friendly Name', 'Value')
     if block_info[0] != (0, 0, 0, 13, 0, 0):
         _print_block_header(get_block_type_label(block_info[0]), width)
-        if block_info[0][2] > 0:
+        if block_info[0][2] > 0 or block_info[0] == (0, 0, 0, 0, 0, 1):
             _print_cols(param_col_labels, param_col_widths)
             for key, val in parse_param_block(filebytes, block_info[1], block_info[2]):
                 _print_cols((key, get_param_label(key), val), param_col_widths)
@@ -213,12 +213,12 @@ def _parse_block_and_print(filebytes, block_info, width):
             _print_centered('Num Blocks: ' + str(data['num_blocks']), width)
             _print_centered('Store Table: ' + str(data['store_table']), width)
             print(data['y'])
-        elif block_info[0] == (0, 0, 0, 0, 0, 0):
-            _print_centered('Undefined Block Type: Raw Bytes', width)
-            print(filebytes[block_info[1]: block_info[1] + block_info[2]])
-        else:
+        elif block_info[0][0] > 0 and block_info[0][1] > 0 and block_info[0][2] == 0 and block_info[0][3] > 0:
             array = parse_data_block(filebytes, block_info[1], block_info[2])
             print(array)
+        else:
+            _print_centered('Undefined Block Type: Raw Bytes', width)
+            print(filebytes[block_info[2]: block_info[2] + block_info[1]])
 
 
 def _print_cols(vals, col_widths,):

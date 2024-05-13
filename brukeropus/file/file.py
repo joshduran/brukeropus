@@ -161,9 +161,10 @@ class FileBlockInfo:
         start: pointer to start location of the block within the file
         keys: tuple of three char keys contained in parameter blocks. This attribute is set by the OPUSFile class only
             when the block is parameter block. This enables grouping parameters by block if desired.
+        bytes: raw bytes of file block (currently only set for unknown blocks)
     '''
 
-    __slots__ = ('type', 'size', 'start', 'keys')
+    __slots__ = ('type', 'size', 'start', 'keys', 'bytes')
 
     keys: tuple
 
@@ -176,10 +177,6 @@ class FileBlockInfo:
         label = self.get_label()
         return 'Block Info: ' + label + ' (size: ' + str(self.size) + ' bytes; start: ' + str(self.start) + ')'
 
-    def is_valid(self):
-        '''Returns False if FileBlockInfo is undefined (i.e. FileBlockInfo.type == (0, 0, 0, 0, 0, 0))'''
-        return self.type != (0, 0, 0, 0, 0, 0)
-
     def is_data_status(self):
         '''Returns True if FileBlockInfo is a data status parameter block'''
         return self.type[2] == 1
@@ -190,7 +187,7 @@ class FileBlockInfo:
 
     def is_param(self):
         '''Returns True if FileBlockInfo is a parameter block'''
-        return self.type[2] > 1
+        return self.type[2] > 1 or self.type == (0, 0, 0, 0, 0, 1)
 
     def is_directory(self):
         '''Returns True if FileBlockInfo is the directory block'''
@@ -202,7 +199,7 @@ class FileBlockInfo:
 
     def is_data(self):
         '''Returns True if FileBlockInfo is a data block or 3D data block'''
-        return self.type[2] == 0 and self.type[3] > 0 and self.type[3] != 13
+        return self.type[0] > 0 and self.type[1] > 0 and self.type[2] == 0 and self.type[3] > 0
 
     def is_3d_data(self):
         '''Returns True if FileBlockInfo is a 3D data block (i.e. data series)'''
@@ -466,10 +463,12 @@ class FileDirectory:
         file_log_block: `FileBlockInfo` of the file log (changes, etc.)
         data_and_status_block_pairs: (data: `FileBlockInfo`, data_status: `FileBlockInfo`) which pairs the data status
             parameter block (time, x units, y units, etc.) with the data block it informs
+        unknown_blocks: list of `FileBlockInfo` with an unrecognized type (i.e. not sure how to parse)
     '''
 
     __slots__ = ('version', 'start', 'max_blocks', 'num_blocks', 'data_blocks', 'data_status_blocks', 'param_blocks',
-                 'rf_param_blocks', 'directory_block', 'file_log_block', 'data_and_status_block_pairs')
+                 'rf_param_blocks', 'directory_block', 'file_log_block', 'data_and_status_block_pairs',
+                 'unknown_blocks')
 
     def __init__(self, filebytes: bytes):
         self.version, self.start, self.max_blocks, self.num_blocks = parse_header(filebytes)
@@ -479,6 +478,7 @@ class FileDirectory:
         self.rf_param_blocks: list = []
         self.directory_block: FileBlockInfo
         self.file_log_block: FileBlockInfo
+        self.unknown_blocks: list = []
         for block_type, size, start in parse_directory(filebytes, self.start, self.num_blocks):
             block = FileBlockInfo(block_type=block_type, size=size, start=start)
             if block.is_data_status():
@@ -491,8 +491,11 @@ class FileDirectory:
                 self.directory_block = block
             elif block.is_file_log():
                 self.file_log_block = block
-            elif block.is_valid():
+            elif block.is_data():
                 self.data_blocks.append(block)
+            else:
+                block.bytes = filebytes[block.start:block.start + block.size]
+                self.unknown_blocks.append(block)
         self.data_and_status_block_pairs = []
         self._pair_data_and_status_blocks()
 
