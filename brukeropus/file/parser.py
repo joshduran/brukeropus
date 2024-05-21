@@ -22,9 +22,12 @@ def read_opus_file_bytes(filepath):
     filebytes = None
     if os.path.isfile(filepath):
         with open(filepath, 'rb') as f:
-            first_four = f.read(4)
-            if first_four == b'\n\n\xfe\xfe':
-                filebytes = first_four + f.read()
+            try:
+                first_four = f.read(4)
+                if first_four == b'\n\n\xfe\xfe':
+                    filebytes = first_four + f.read()
+            except:
+                pass # Empty file (or file with fewer than 4 bytes)
     else:
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), filepath)
     return filebytes
