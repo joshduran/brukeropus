@@ -250,7 +250,7 @@ STRUCT_3D_INFO_BLOCK = [
     {'key': 'pkl', 'fmt': 'l', 'dtype': np.int32},
     {'key': 'prl', 'fmt': 'l', 'dtype': np.int32},
     {'key': 'srt', 'fmt': 'd', 'dtype': np.float64},
-    {'key': 'tim', 'fmt': 'd', 'dtype': np.float64},
+    {'key': 'ert', 'fmt': 'd', 'dtype': np.float64},
 ]
 
 
