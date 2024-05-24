@@ -112,26 +112,46 @@ def parse_directory(filebytes: bytes, directory_start: int, num_blocks: int):
         yield block_type, size, start
 
 
+def parse_dir(blockbytes):
+    loc = 0
+    blocks = []
+    while loc < len(blockbytes):
+        type_int, size_int, start = struct.unpack_from('<3i', blockbytes, loc)
+        loc = loc + 12
+        if start > 0:
+            block_type = get_block_type(type_int)
+            size = size_int*4
+            blocks.append((block_type, size, start))
+        else:
+            break
+    return blocks
+
+
 def parse_param_block(filebytes: bytes, size: int, start: int):
-    '''Parses the bytes in a parameter block and yields the key, value pairs as a generator.
+    '''Legacy, remove this function when possible
+    '''
+    blockbytes = filebytes[start:start + size]
+    parse_params(blockbytes)
+
+
+def parse_params(blockbytes: bytes) -> dict:
+    '''Parses the bytes in a parameter block and returns a dict containing the decoded keys and vals.
 
     Parameter blocks are in the form: `XXX`, `dtype_code`, `size`, `val`.  `XXX` is a three char abbreviation of the
     parameter (key). The value of the parameter is decoded according to the `dtype_code` and size integers to be either:
     `int`, `float`, or `string`.
 
     Args:
-        filebytes: raw bytes of OPUS file (all bytes)
-        size: total number of bytes in parameter block (specified in file directory)
-        start: pointer to start location of parameter block (specified in file directory)
+        blockbytes: raw bytes of an OPUS file parameter block
 
-    Yields:
+    Returns:
         **items (tuple):** (key, value) pairs where key is three char string (lowercase) and value can be `int`, `float`
             or `string`.
     '''
-    blockbytes = filebytes[start:start + size]
     loc = 0
-    while loc < size:
-        key = blockbytes[loc:loc+3].decode('utf-8')
+    params = dict()
+    while loc < len(blockbytes):
+        key = blockbytes[loc:loc + 3].decode('utf-8')
         if key == 'END':
             break
         dtype_code, val_size = struct.unpack_from('<2h', blockbytes[loc + 4:loc + 8])
@@ -151,9 +171,10 @@ def parse_param_block(filebytes: bytes, size: int, start: int):
                 else:
                     val = val.decode('latin-1')
         except Exception as e:
-            val = 'Failed to load: ' + str(e)
-        yield key, val
+            val = 'Failed to decode: ' + str(e)
+        params[key.lower()] = val
         loc = loc + val_size + 8
+    return params
 
 
 def get_dpf_dtype_count(dpf: int, size: int):
@@ -199,6 +220,27 @@ def parse_data_block(filebytes: bytes, size: int, start: int, dpf=1):
     '''
     dtype, count = get_dpf_dtype_count(dpf=dpf, size=size)
     return np.frombuffer(filebytes[start:], dtype=dtype, count=count)
+
+
+def parse_data(blockbytes: bytes, dpf: int = 1):
+    '''Parses the bytes in a data block and returns a `numpy` array.
+
+    Data blocks contain no metadata, only the y-values of a data array. Data arrays include: single-channel sample,
+    reference, phase, interferograms, and a variety of resultant data (transmission, absorption, etc.).  Every data
+    block should have a corresponding data status parameter block which can be used to generate the x-array values for
+    the data block. The data status block also specifies the data type of the data array with the `DPF` parameter. It
+    appears that OPUS currently exclusively stores data blocks as 32-bit floats, but has a reservation for 32-bit
+    integers when `DPF` = 2.
+
+    Args:
+        blockbytes: raw bytes of data block
+        dpf: data-point-format integer stored in corresponding data status block.
+
+    Returns:
+        **y_array (numpy.ndarray):** `numpy` array of y values contained in the data block
+    '''
+    dtype, count = get_dpf_dtype_count(dpf=dpf, size=len(blockbytes))
+    return np.frombuffer(blockbytes, dtype=dtype, count=count)
 
 
 def parse_3d_data_block(filebytes: bytes, start: int, dpf: int = 1):
@@ -252,6 +294,56 @@ def parse_3d_data_block(filebytes: bytes, start: int, dpf: int = 1):
     return data
 
 
+def parse_data_series(blockbytes: bytes, dpf: int = 1):
+    '''Parses the bytes in a 3D data block (series of spectra) and returns a data `dict` containing data and metadata.
+
+    3D data blocks are structured differently than standard data blocks. In addition to the series of spectra, they
+    include metadata for each of the spectrum.  This function returns a `dict` containing all the extracted information
+    from the data block.  The series spectra is formed into a 2D array while metadata captured for each spectra is
+    formed into a 1D array (length = number of spectral measurements in the series).
+
+    Args:
+        blockbytes: raw bytes of the data series block
+        dpf: data-point-format integer stored in corresponding data status block.
+
+    Returns:
+        **data_dict (dict):** `dict` containing all extracted information from the data block  
+            {  
+                **version:** file format version number (should be 0)  
+                **num_blocks:** number of sub blocks; each sub block features a data spectra and associated metadata  
+                **offset:** offset in bytes to the first sub data block  
+                **data_size:** size in bytes of each sub data block  
+                **info_size:** size in bytes of the metadata info block immediately following the sub data block  
+                **store_table:** run numbers of the first and last blocks to keep track of skipped spectra  
+                **y:** 2D `numpy` array containing all spectra (C-order)  
+                **metadata arrays:** series of metadata arrays in 1D array format (e.g. `npt`, `mny`, `mxy`, `tim`).
+                    The most useful one is generally `tim`, which can be used as the time axis for 3D data plots.  
+            }
+    '''
+    header = struct.unpack_from('6l', blockbytes, 0)
+    data = {
+        'version': header[0],
+        'num_blocks': header[1],
+        'offset': header[2],
+        'data_size': header[3],
+        'info_size': header[4],
+    }
+    data['store_table'] = [struct.unpack_from('<2l', blockbytes, 24 + i * 8) for i in range(header[5])]
+    dtype, count = get_dpf_dtype_count(dpf, data['data_size'])
+    data['y'] = np.zeros((data['num_blocks'], count), dtype=dtype)
+    for entry in STRUCT_3D_INFO_BLOCK:
+        data[entry['key']] = np.zeros((data['num_blocks']), dtype=entry['dtype'])
+    offset = data['offset']
+    for i in range(data['num_blocks']):
+        data['y'][i] = np.frombuffer(blockbytes[offset:], dtype=dtype, count=count)
+        offset = offset + data['data_size']
+        info_vals = struct.unpack_from('<' + ''.join([e['fmt'] for e in STRUCT_3D_INFO_BLOCK]), blockbytes, offset)
+        for j, entry in enumerate(STRUCT_3D_INFO_BLOCK):
+            data[entry['key']][i] = info_vals[j]
+        offset = offset + data['info_size']
+    return data
+
+
 def parse_file_log(filebytes: bytes, size: int, start: int):
     '''Parses the file log in an OPUS file and returns a list of strings contained in the log.
 
@@ -281,3 +373,19 @@ def parse_file_log(filebytes: bytes, size: int, start: int):
                 except Exception as e:
                     strings.append('<Decode Exception>: ' + str(e))
     return strings
+
+
+def parse_text(block_bytes: bytes):
+    byte_string = struct.unpack('<' + str(len(block_bytes)) + 's', block_bytes)[0]
+    byte_strings = byte_string.split(b'\x00')
+    strings = []
+    for entry in byte_strings:
+        if entry != b'':
+            try:
+                strings.append(entry.decode('latin-1'))
+            except Exception:
+                try:
+                    strings.append(entry.decode('utf-8'))
+                except Exception as e:
+                    strings.append('<Decode Exception>: ' + str(e))
+    return '\n'.join(strings)

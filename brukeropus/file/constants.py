@@ -182,6 +182,11 @@ CODE_3 = {0: '',
           17: 'Photoacoustic',
           18: 'Result of Arithmatics, looks like Transmittance',
           19: 'Result of Arithmatics, looks like Absorbance',
+          33: '2-Channel',
+          34: 'Interferogram 2-Channel',
+          36: 'Absorbance 2-Channel',
+          65: '3-Channel',
+          97: '4-Channel',
           }
 
 
@@ -194,7 +199,7 @@ CODE_4 = {0: '',
 
 CODE_5 = {0: '',
           1: 'Compound Information',
-          2: 'Peak Table',
+          2: '(Series)',
           3: 'Molecular Structure',
           4: 'Macro',
           5: 'File Log',
@@ -215,12 +220,17 @@ CODE_3_ABR = {0: '',
               11: 'e',
               12: 'r',
               13: 'dir',
-              14: 'p',
+              14: 'pw',
               15: 'logr',
               16: 'atr',
               17: 'pas',
               18: 'arit',
               19: 'aria',
+              33: '_2ch', # sm/rf
+              34: 'ig_2ch', # sm/rf
+              36: 'a_2ch',
+              65: '_3ch', # sm/rf
+              97: '_4ch', # sm/rf
               }
 
 

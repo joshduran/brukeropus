@@ -122,9 +122,9 @@ def get_data_key(block_type: tuple):
     if block_type[3] in CODE_3_ABR.keys():
         key = CODE_3_ABR[block_type[3]]
         if block_type[1] == 1:
-            key = key + 'sm'
+            key = merge_key(key, 'sm')
         elif block_type[1] == 2:
-            key = key + 'rf'
+            key = merge_key(key, 'rf')
         elif block_type[1] > 3:
             key = key + '_' + str(block_type[1])
     else:
@@ -136,6 +136,15 @@ def get_data_key(block_type: tuple):
         elif block_type[1] > 3:
             key = '_' + str(block_type[1]) + key
     return key
+
+
+def merge_key(key: str, sm: str):
+    '''Merges "sm" or "rf" into an abreviated data key.  For special cases like ig or pw, the addition is appended
+    (e.g. igsm, phrf), but for other cases, the addition is prepended (e.g. sm_2ch, rf_3ch)'''
+    if key[:2] in ['ig', 'ph', 'pw']:
+        return key[:2] + sm + key[2:]
+    else:
+        return sm + key
 
 
 def parse_file_and_print(filepath, width=120):
