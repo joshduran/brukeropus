@@ -4,7 +4,7 @@ files. This includes both high-level functions like `read_opus` that returns an 
 parsing functions like `parse_directory` that returns data extracted directly from the binary OPUS file bytes.  This
 overview documentation will focus on the high-level functions which will be useful for most users.  If you are
 interested in using the low-level parsing functions, perhaps to make your own data class or customize how files are
-read, refer to: `brukeropus.file.parser` which contains all the low-level parsing functions.
+read, refer to: `brukeropus.file.parse` which contains all the low-level parsing functions.
 ## Finding OPUS Files
 OPUS files are typically saved with a numeric file extension (e.g. file.0, file.1, file.1001).  This makes searching for
 a list of OPUS files in a directory a little more cumbersome than a traditional "*.csv" search.  To address this,
@@ -369,6 +369,7 @@ For full API documentation, see:
 `Data3D`: `brukeropus.file.file.Data3D`
 '''
 from brukeropus.file.file import *
-from brukeropus.file.parser import *
+from brukeropus.file.block import *
+from brukeropus.file.parse import *
 from brukeropus.file.utils import *
 from brukeropus.file.constants import *

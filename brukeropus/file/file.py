@@ -3,7 +3,7 @@ import numpy as np
 
 from brukeropus.file.block import pair_data_and_status_blocks, FileBlock, FileDirectory
 from brukeropus.file.utils import get_block_type_label, get_param_label, _print_block_header, _print_cols
-from brukeropus.file.parser import read_opus_file_bytes
+from brukeropus.file.parse import read_opus_file_bytes
 
 
 __docformat__ = "google"

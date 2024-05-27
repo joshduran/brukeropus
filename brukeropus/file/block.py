@@ -1,5 +1,5 @@
 from brukeropus.file.utils import get_block_type_label, get_data_key
-from brukeropus.file.parser import (parse_header,
+from brukeropus.file.parse import (parse_header,
                                     parse_directory,
                                     parse_params,
                                     parse_data,
