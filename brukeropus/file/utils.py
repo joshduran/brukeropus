@@ -3,10 +3,10 @@ from brukeropus.file.constants import TYPE_CODE_LABELS, PARAM_LABELS, CODE_3_ABR
 from brukeropus.file.parser import (read_opus_file_bytes,
                                     parse_header,
                                     parse_directory,
-                                    parse_data_block,
-                                    parse_3d_data_block,
-                                    parse_param_block,
-                                    parse_file_log,
+                                    # parse_data_block,
+                                    # parse_3d_data_block,
+                                    # parse_param_block,
+                                    # parse_file_log,
 )
 
 

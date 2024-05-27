@@ -1,7 +1,6 @@
 from brukeropus.file.utils import get_block_type_label, get_data_key
 from brukeropus.file.parser import (parse_header,
                                     parse_directory,
-                                    parse_dir,
                                     parse_params,
                                     parse_data,
                                     parse_data_series,
@@ -111,7 +110,7 @@ class FileBlock:
     def get_parser(self):
         '''Returns the appopriate file block parser based on the type code (None if not recognized)'''
         if self.is_directory():
-            return parse_dir
+            return parse_directory
         elif self.is_file_log():
             return parse_text
         elif self.is_param():
@@ -150,8 +149,9 @@ class FileDirectory:
     '''
     def __init__(self, filebytes: bytes):
         self.version, self.start, self.max_blocks, self.num_blocks = parse_header(filebytes)
+        size = self.max_blocks * 3 * 4
         blocks = []
-        for block_type, size, start in parse_directory(filebytes, self.start, self.num_blocks):
+        for block_type, size, start in parse_directory(filebytes[self.start: self.start + size]):
             block = FileBlock(filebytes=filebytes, block_type=block_type, size=size, start=start)
             block.parse()
             blocks.append(block)
