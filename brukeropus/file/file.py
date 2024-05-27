@@ -21,8 +21,7 @@ def read_opus(filepath):
         filepath (str or Path): filepath of an OPUS file (typically *.0)
 
     Returns:
-        opus_file (`OPUSFile`): an instance of the `OPUSFile` class containing all data/metadata extracted from the
-        file.
+        opus_file: an instance of the `OPUSFile` class containing all data/metadata extracted from the file.
     '''
     return OPUSFile(filepath)
 
@@ -35,20 +34,19 @@ class OPUSFile:
             an `OPUSFile` object.
 
     Attributes:
-        is_opus: True if filepath points to an OPUS file, False otherwise. Also returned for dunder 
-            `__bool__()`  
+        is_opus: True if filepath points to an OPUS file, False otherwise. Also returned for dunder `__bool__()`  
         params: class containing all general parameter metadata for the OPUS file. To save typing, the
             three char parameters from params also become attributes of the `OPUSFile` class (e.g. bms, apt, src)  
-        rf_params: class containing all reference parameter metadata for the OPUS file.  
-        data_keys: list of all data attributes stored in the file (e.g. sm, rf, t, a, r, igsm, igrf, phsm, etc.).
-            This only includes 1D data (i.e. omits data series).
-        series_keys: list of all data series attributes stored in the file (e.g. sm, rf, t, a, igsm, phsm, etc.).
-            This only includes data series (i.e. omits 1D data).
-        all_data_keys: list of all data and data series attributes stored in the file (1D and series comingled).
+        rf_params: class containing all reference parameter metadata for the OPUS file 
+        data_keys: list of all `Data` attributes stored in the file (e.g. sm, rf, t, a, r, igsm, igrf, phsm, etc.).
+            This only includes 1D data (i.e. omits `DataSeries`).
+        series_keys: list of all `DataSeries` attributes stored in the file (e.g. sm, rf, t, a, igsm, phsm, etc.).
+            This only includes data series (i.e. omits 1D `Data`).
+        all_data_keys: list of all `Data` and `DataSeries` attributes stored in the file (1D and series comingled).
         datetime: Returns the most recent datetime of all the data blocks stored in the file (typically result spectra)
-        directory:  class containing information about all the various data blocks in the file.
+        directory: `FileDirectory` class containing information about all the various data blocks in the file.
         history: History (file-log) containing text about how the file was generated/edited (not always saved)
-        unknown_blocks: list of blocks that were not parsed and/or assigned to attributes into the class
+        unknown_blocks: list of `FileBlock` that were not parsed and/or assigned to attributes into the class
 
     Data Attributes:
         **sm:** Single-channel sample spectra
@@ -204,13 +202,13 @@ class Parameters:
     '''Class containing parameter metadata of an OPUS file.
 
     Parameters of an OPUS file are stored as key, val pairs, where the key is always three chars.  For example, the
-    beamsplitter is stored in the "bms" attribute, source in "src" etc.  A list of known keys, with friendly label can
+    beamsplitter is stored in the `bms` attribute, source in `src` etc.  A list of known keys, with friendly label can
     be found in `brukeropus.file.constants.PARAM_LABELS`.  The keys in an OPUS file are not case sensitive, and stored
     in all CAPS (i.e. `BMS`, `SRC`, etc.) but this class uses lower case keys to follow python convention.  The class is
     initialized from a list of `FileBlock` parsed as parameters.  The key, val items in blocks of the list are combined
     into one parameter class, so care must be taken not to pass blocks that will overwrite each others keys.  Analagous
-    to a dict, the keys, values, and (key, val) can be iterated over using the functions: `keys()`, `values()`, and `items()`
-    respectively.
+    to a dict, the keys, values, and (key, val) can be iterated over using the functions: `keys()`, `values()`, and
+    `items()` respectively.
 
     Args:
         blocks: list of `FileBlock`; that has been parsed as parameters.
@@ -220,7 +218,7 @@ class Parameters:
             `FileBlock` that is used to initialize the class. If input list contains a single data status
             `FileBlock`, attributes will include: `fxv`, `lxv`, `npt` (first x-val, last x-val, number of points),
             etc. Other blocks produce attributes such as: `bms`, `src`, `apt` (beamsplitter, source, aperture) etc. A
-            full list of keys available in a given Parameters instance are given by the `keys()` method.
+            full list of keys available in a given `Parameters` instance are given by the `keys()` method.
         datetime: if blocks contain the keys: `dat` (date) and `tim` (time), the `datetime` attribute of this class will
             be set to a python `datetime` object. Currently, only data status blocks are known to have these keys. If
             `dat` and `tim` are not present in the class, the `datetime` attribute will return `None`.
@@ -289,8 +287,8 @@ class Data:
         data_block: parsed `FileBlock` instance of a data block
         data_status_block: `parsed FileBlock` instance of a data status block which contains metadata about the data
             block. This block is a parameter block.
-        key: attribute key (string) assigned to the data
-        vel: mirror velocity setting for measurement (from param or rf_param block)
+        key: attribute name (string) assigned to the data
+        vel: mirror velocity setting for the measurement (from param or rf_param block as appropriate)
 
     Attributes:
         params: `Parameter` class with metadata associated with the data block such as first x point: `fxp`, last x
@@ -298,22 +296,23 @@ class Data:
         y: 1D `numpy` array containing y values of data block
         x: 1D `numpy` array containing x values of data block. Units of x array are given by `dxu` parameter.
         label: human-readable string label describing the data block (e.g. Sample Spectrum, Absorbance, etc.)
-        key: attribute key (string) assigned to the data
-        vel: mirror velocity setting for measurement (used to calculate modulation frequency)
-        block: data `FileBlock` used to generate the data
-        blocks: [data, data_status] `FileBlock` used to generate the data
+        key: attribute name (string) assigned to the data
+        vel: mirror velocity setting for the measurement (used to calculate modulation frequency)
+        block: data `FileBlock` used to generate the `Data` class
+        blocks: [data, data_status] `FileBlock` used to generate the `Data` class
 
     Extended Attributes:
         **wn:** Returns the x array in wavenumber (cm⁻¹) units regardless of what units the x array was originally
             saved in. This is only valid for spectral data blocks such as sample, reference, transmission, etc., not
-            interferogram or phase blocks.  
+            interferogram or phase blocks.
         **wl:** Returns the x array in wavelength (µm) units regardless of what units the x array was originally
             saved in. This is only valid for spectral data blocks such as sample, reference, transmission, etc., not
-            interferogram or phase blocks.  
+            interferogram or phase blocks.
         **f:** Returns the x array in modulation frequency units (Hz) regardless of what units the x array was
             originally saved in. This is only valid for spectral data blocks such as sample, reference, transmission,
-            etc., not interferogram or phase blocks.  
-        **datetime:** Returns a `datetime` class of when the data was taken (extracted from data status parameter block).  
+            etc., not interferogram or phase blocks.
+        **datetime:** Returns a `datetime` class of when the data was taken (extracted from data status parameter
+            block).  
         **xxx:** the various three char parameter keys from the `params` attribute can be directly called from the 
             `Data` class for convenience. Common parameters include `dxu` (x units), `mxy` (max y value), `mny` (min y
             value), etc.
@@ -369,26 +368,26 @@ class Data:
 
 
 class DataSeries(Data):
-    '''Class containing 3D array data (series of spectra) and associated parameter/metadata from an OPUS file.
+    '''Class containing a data series (3D specra) and associated parameter/metadata from an OPUS file.
 
     Args:
         data_block: parsed `FileBlock` instance of a data block
         data_status_block: `parsed FileBlock` instance of a data status block which contains metadata about the data
             block. This block is a parameter block.
-        key: attribute key (string) assigned to the data
-        vel: mirror velocity setting for measurement (from param or rf_param block)
+        key: attribute name (string) assigned to the data
+        vel: mirror velocity setting for measurement (from param or rf_param block as appropriate)
 
     Attributes:
         params: `Parameter` class with metadata associated with the data block such as first x point: `fxp`, last x
             point: `lxp`, number of points: `npt`, date: `dat`, time: `tim` etc.
         y: 2D numpy array containing y values of data block
-        x: 1D numpy array containing x values of data block. Units of x array are given by .dxu attribute.
+        x: 1D numpy array containing x values of data block. Units of x array are given by `.dxu` attribute.
         num_spectra: number of spectra in the series (i.e. length of y)
         label: human-readable string label describing the data block (e.g. Sample Spectrum, Absorbance, etc.)
-        key: attribute key (string) assigned to the data
+        key: attribute name (string) assigned to the data
         vel: mirror velocity setting for measurement (used to calculate modulation frequency)
-        block: data `FileBlock` used to generate the data
-        blocks: [data, data_status] `FileBlock` used to generate the data
+        block: data `FileBlock` used to generate the `DataSeries` class
+        blocks: [data, data_status] `FileBlock` used to generate the `DataSeries` class
 
     Extended Attributes:
         **wn:** Returns the x array in wavenumber (cm⁻¹) units regardless of what units the x array was originally saved
@@ -399,9 +398,9 @@ class DataSeries(Data):
             interferogram or phase blocks.  
         **datetime:** Returns a `datetime` class of when the data was taken (extracted from data status parameter
             block).  
-        **xxx:** the various three char parameter keys from the "params" attribute can be directly called from the data
+        **xxx:** the various three char parameter keys from the `params` attribute can be directly called from the data
             class for convenience. Several of these parameters return arrays, rather than singular values because they
-            are recorded for every spectra in the series, e.g. `npt`, `mny`, `mxy`, `tim`, `nsn`.  
+            are recorded for every spectra in the series, e.g. `npt`, `mny`, `mxy`, `srt`, 'ert', `nsn`.
     '''
     __slots__ = ('key', 'params', 'y', 'x', 'label', 'vel', 'block', 'blocks', 'num_spectra')
 
