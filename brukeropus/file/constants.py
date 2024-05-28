@@ -159,6 +159,7 @@ CODE_2 = {0: '',
           8: 'Library Search Parameters',
           9: 'Communication Parameters',
           10: 'Sample Origin Parameters',
+          11: 'Lab and Process Parameters',
           }
 
 

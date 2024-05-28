@@ -70,11 +70,6 @@ class OPUSFile:
         **atr:** ATR
         **pas:** Photoacoustic
     '''
-    is_opus = False
-    data_keys = []
-    series_keys = []
-    all_data_keys = []
-    unknown_blocks = []
 
     def __str__(self):
         if self.is_opus:
@@ -92,6 +87,11 @@ class OPUSFile:
 
     def __init__(self, filepath):
         self.filepath = filepath
+        self.is_opus = False
+        self.data_keys = []
+        self.series_keys = []
+        self.all_data_keys = []
+        self.unknown_blocks = []
         filebytes = read_opus_file_bytes(filepath)
         if filebytes:
             self.is_opus = True
@@ -128,11 +128,11 @@ class OPUSFile:
         key = data_block.get_data_key()
         if key in self.all_data_keys:
             for i in range(10):
-                key = key + '_' + str(i + 1)
-                if key not in self.all_data_keys:
-                    return key
-        else:
-            return key
+                sub_key = key + '_' + str(i + 1)
+                if sub_key not in self.all_data_keys:
+                    key = sub_key
+                    break
+        return key
 
     def _get_data_vel(self, data_block: FileBlock):
         '''Get the mirror velocity setting for the data `Fileblock` (based on whether it is reference or sample)'''
@@ -146,7 +146,7 @@ class OPUSFile:
     def _init_data(self):
         '''Pairs data and data_series `Fileblock`, sets all `Data` and `DataSeries` attributes, and removes the blocks
         fromt he directory'''
-        matches = pair_data_and_status_blocks(self.directory.blocks)
+        matches = pair_data_and_status_blocks([b for b in self.directory.blocks])
         for data, status in matches:
             key = self._get_unused_data_key(data)
             vel = self._get_data_vel(data)
