@@ -1,10 +1,10 @@
-from brukeropus.file.utils import get_block_type_label, get_data_key
+from brukeropus.file.labels import get_block_type_label, get_data_key
 from brukeropus.file.parse import (parse_header,
-                                    parse_directory,
-                                    parse_params,
-                                    parse_data,
-                                    parse_data_series,
-                                    parse_text)
+                                   parse_directory,
+                                   parse_params,
+                                   parse_data,
+                                   parse_data_series,
+                                   parse_text)
 
 
 __docformat__ = "google"
