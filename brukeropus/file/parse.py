@@ -254,7 +254,7 @@ def parse_data_series(blockbytes: bytes, dpf: int = 1) -> dict:
     return data
 
 
-def parse_text(block_bytes: bytes):
+def parse_text(block_bytes: bytes) -> str:
     '''Parses and OPUS file block as text (e.g. history or file-log block).
 
     The history (aka file-log) block of an OPUS file contains some information about how the file was generated and

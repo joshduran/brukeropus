@@ -8,23 +8,11 @@ from brukeropus.file.parse import read_opus_file_bytes
 
 __docformat__ = "google"
 
-
-def read_opus(filepath):
-    '''Return an `OPUSFile` object from an OPUS file filepath.
-
-    The following produces identical results:
-        ```python
-        data = read_opus(filepath)
-        data = OPUSFile(filepath)
-        ```
-    Args:
-        filepath (str or Path): filepath of an OPUS file (typically *.0)
-
-    Returns:
-        opus_file: an instance of the `OPUSFile` class containing all data/metadata extracted from the file.
-    '''
-    return OPUSFile(filepath)
-
+'''
+The `OPUSFile` class attempts to abstract away some of the complexity and rigid organization structure of Bruker's OPUS
+files while providing full access to the data contained in them.  This way, the user does not have to memorize the
+organization structure of an OPUS file to access the information.
+'''
 
 class OPUSFile:
     '''Class that contains the data and metadata contained in a bruker OPUS file.
@@ -64,7 +52,6 @@ class OPUSFile:
         **gcsc:** gc File (Series of Spectra)
         **ra:** Raman
         **e:** Emission
-        **dir:** Directory
         **pw:** Power
         **logr:** log(Reflectance)
         **atr:** ATR
@@ -92,6 +79,9 @@ class OPUSFile:
         self.series_keys = []
         self.all_data_keys = []
         self.unknown_blocks = []
+        self.special_blocks = []
+        self.unmatched_data_blocks = []
+        self.unmatched_data_status_blocks = []
         filebytes = read_opus_file_bytes(filepath)
         if filebytes:
             self.is_opus = True
@@ -102,6 +92,7 @@ class OPUSFile:
             self._init_history()
             self._init_data()
             self.unknown_blocks = [block for block in self.directory.blocks]
+            self._remove_blocks(self.unknown_blocks)
 
     def _init_directory(self):
         '''Moves the directory `FileBlock` into the directory attribute.'''
@@ -120,6 +111,7 @@ class OPUSFile:
         '''Sets the history attribute to the parsed history (file_log) data and removes the block.'''
         hist_blocks = [b for b in self.directory.blocks if b.is_file_log()]
         if len(hist_blocks) > 0:
+            self.special_blocks = self.special_blocks + hist_blocks
             self.history = '\n\n'.join([b.data for b in hist_blocks])
         self._remove_blocks(hist_blocks)
 
@@ -145,7 +137,7 @@ class OPUSFile:
 
     def _init_data(self):
         '''Pairs data and data_series `Fileblock`, sets all `Data` and `DataSeries` attributes, and removes the blocks
-        fromt he directory'''
+        from the directory. Unmatched blocks are moved to `unmached_data_blocks` or `unmatched_data_status_blocks`'''
         matches = pair_data_and_status_blocks([b for b in self.directory.blocks])
         for data, status in matches:
             key = self._get_unused_data_key(data)
@@ -159,6 +151,10 @@ class OPUSFile:
             setattr(self, key, data_class(data, status, key=key, vel=vel))
             self.all_data_keys.append(key)
             self._remove_blocks([data, status])
+        self.unmatched_data_blocks = [b for b in self.directory.blocks if b.is_data() or b.is_data_series()]
+        self._remove_blocks(self.unmatched_data_blocks)
+        self.unmatched_data_status_blocks = [b for b in self.directory.blocks if b.is_data_status()]
+        self._remove_blocks(self.unmatched_data_status_blocks)
 
     def _remove_blocks(self, blocks: list):
         '''Removes blocks from the directory whose data has been stored elsewhere in class (e.g. params, data, etc.).'''
@@ -184,18 +180,18 @@ class OPUSFile:
         '''Prints all the parameter metadata to the console (organized by block)'''
         width = key_width + label_width + value_width
         col_widths = (key_width, label_width, value_width)
-        param_blocks = self.params.blocks + self.rf_params.blocks
-        for block in param_blocks:
-            label = get_block_type_label(block.type)
-            _print_block_header(label, width=width)
-            _print_cols(('Key', 'Label', 'Value'), col_widths=col_widths)
-            for key in block.keys:
-                label = get_param_label(key)
-                if block.is_rf_param():
-                    value = getattr(self.rf_params, key)
-                else:
-                    value = getattr(self.params, key)
-                _print_cols((key.upper(), label, value), col_widths=col_widths)
+        param_infos = [('Sample/Result Parameters', 'params'), ('Reference Parameters', 'rf_params')]
+        for title, attr in param_infos:
+            _print_block_header(title + ' (' + attr + ')', width=width, sep='=')
+            blocks = getattr(self, attr).blocks
+            for block in blocks:
+                label = get_block_type_label(block.type)
+                _print_block_header(label, width=width, sep='.')
+                _print_cols(('Key', 'Label', 'Value'), col_widths=col_widths)
+                for key in block.keys:
+                    label = get_param_label(key)
+                    value = getattr(getattr(self, attr), key)
+                    _print_cols((key.upper(), label, value), col_widths=col_widths)
 
 
 class Parameters:
@@ -419,3 +415,20 @@ class DataSeries(Data):
         data_block.data = None
         self.block = data_block
         self.blocks = self.params.blocks + [self.block]
+
+
+def read_opus(filepath: str) -> OPUSFile:
+    '''Return an `OPUSFile` object from an OPUS file filepath.
+
+    The following produces identical results:
+        ```python
+        data = read_opus(filepath)
+        data = OPUSFile(filepath)
+        ```
+    Args:
+        filepath (str or Path): filepath of an OPUS file (typically *.0)
+
+    Returns:
+        opus_file: an instance of the `OPUSFile` class containing all data/metadata extracted from the file.
+    '''
+    return OPUSFile(filepath)

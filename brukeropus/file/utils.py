@@ -79,9 +79,9 @@ def parse_file_and_print(filepath, width=120):
         print('Selected file is not an OPUS file: ', filepath)
 
 
-def _print_block_header(label, width):
+def _print_block_header(label, width, sep='='):
     'Helper function for: parse_file_and_print'
-    print('\n' + '=' * width)
+    print('\n' + sep * width)
     _print_centered(label, width)
 
 
