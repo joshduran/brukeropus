@@ -30,7 +30,7 @@ same_data = OPUSFile(filepath)
 In the above code, `data` and `same_data` are both `OPUSFile` objects with identical data.
 ## Using the `OPUSFile` Class
 OPUS files all start with the same first four *magic bytes*.  If the file does not start with these bytes (i.e. is not
-a valid OPUS file), the OPUSFile class will logically evaluate to `false`:
+a valid OPUS file), the `OPUSFile` class will logically evaluate to `false`:
 ```python
 data = read_opus('file.pdf')
 if data:
@@ -51,6 +51,9 @@ data.print_parameters()
 <p>
 ```console
 ====================================================================================================
+                                 Sample/Result Parameters (params)
+
+....................................................................................................
                                          Optical Parameters
 Key    Label                                   Value
 ACC    Accessory                               TRANS *010A984F
@@ -70,7 +73,7 @@ VEL    Scanner Velocity                        10.0
 ADC    External Analog Signals                 0
 SON    External Sync                           Off
 
-====================================================================================================
+....................................................................................................
                                     Fourier Transform Parameters
 Key    Label                                   Value
 APF    Apodization Function                    B3
@@ -82,7 +85,7 @@ PHZ    Phase Correction Mode                   ML
 SPZ    Stored Phase Mode                       NO
 ZFF    Zero Filling Factor                     2
 
-====================================================================================================
+....................................................................................................
                                        Acquisition Parameters
 Key    Label                                   Value
 ADT    Additional Data Treatment               0
@@ -101,7 +104,7 @@ TCL    Command Line for Additional Data Tr...
 TDL    To Do List                              16777271
 SGN    Sample Signal Gain                      1
 
-====================================================================================================
+....................................................................................................
                                       Sample Origin Parameters
 Key    Label                                   Value
 BLD    Building
@@ -117,7 +120,7 @@ IST    Instrument Status                       OK
 CPG    Character Encoding Code Page            1252
 UID    Universally Unique Identifier           0d1348c2-3a2c-41c9-b521-bdaf0a23710c
 
-====================================================================================================
+....................................................................................................
                                     Instrument Status Parameters
 Key    Label                                   Value
 HFL    High Folding Limit                      15795.820598
@@ -161,6 +164,9 @@ FOC    Focal Length                            100.0
 RDY    Ready Check                             1
 
 ====================================================================================================
+                                  Reference Parameters (rf_params)
+
+....................................................................................................
                                Reference Instrument Status Parameters
 Key    Label                                   Value
 HFL    High Folding Limit                      15795.820598
@@ -204,7 +210,7 @@ FOC    Focal Length                            100.0
 RDY    Ready Check                             1
 ARS    Number of Reference Scans               1
 
-====================================================================================================
+....................................................................................................
                                     Reference Optical Parameters
 Key    Label                                   Value
 ACC    Accessory                               TRANS *010A984F
@@ -224,7 +230,7 @@ VEL    Scanner Velocity                        10.0
 ADC    External Analog Signals                 0
 SON    External Sync                           Off
 
-====================================================================================================
+....................................................................................................
                                   Reference Acquisition Parameters
 Key    Label                                   Value
 ADT    Additional Data Treatment               0
@@ -243,7 +249,7 @@ STR    Scans or Time (Reference)               0
 TCL    Command Line for Additional Data Tr...
 TDL    To Do List                              16777271
 
-====================================================================================================
+....................................................................................................
                                Reference Fourier Transform Parameters
 Key    Label                                   Value
 APF    Apodization Function                    B3
@@ -257,9 +263,24 @@ ZFF    Zero Filling Factor                     2
 ```
 </p>
 </details>
-  
-You can access a specific parameter simply by calling the key as a direct attribute of the class (case insensitive). You
-can also get the human-readable label using the `get_param_label` function:
+
+You can access the sample parameters through the `OPUSFile.params` attribute, or as a direct attribute for shorthand
+(e.g. `OPUSFile.params.apt` or `OPUSFile.apt`).  The parameter keys are also case insensitive (e.g. `OPUSFile.bms` or
+`OPUSFile.BMS`).
+
+OPUS files can also contain parameter information about the associated reference (aka background) measurement. These
+parameters are only accessible through the `OPUSFile.rf_params` attribute to avoid namespace collisions (e.g.
+`OPUSFile.rf_params.apt`).
+
+```python
+data = read_opus('file.0')
+print('Sample ZFF:', data.zff, 'Reference ZFF:', data.rf_params.zff)
+```
+```console
+Sample ZFF: 2 Reference ZFF: 2
+```
+
+You can also get the human-readable label for a parameter key using the `get_param_label` function:
 
 ```python
 from brukeropus.file import get_param_label
@@ -272,19 +293,8 @@ Beamsplitter: KBr-Broadband
 Source: MIR
 ```
 
-You will notice in the example output that some keys (e.g. zero filling factor `zff`) may have two entries: one for the
-sample measurement and another for the reference.  By default, the sample parameters are accessible directly from the
-`OPUSFile` class, while the reference parameters can be accessed through the `rf_params` attribute.
-
-```python
-data = read_opus('file.0')
-print('Sample ZFF:', data.zff, 'Reference ZFF:', data.rf_params.zff)
-```
-```console
-Sample ZFF: 2 Reference ZFF: 2
-```
 You can also iterate over the parameters using the familiar `keys()`, `values()`, and `items()` functions using the
-`params` or `rf_params` attributes:
+`params` or `rf_params` attributes (just like a dictionary):
 
 ```python
 data = read_opus('file.0')
@@ -307,36 +317,22 @@ pgn: 3
 ```
 
 Depending on the settings used to save the OPUS file, different data blocks can be stored.  To retrieve a list of data
-blocks stored in the OPUS File, use the `data_keys` attribute:
+blocks stored in the OPUS File, you can use the `all_data_keys` attribute:
 
 ```python
 data = read_opus('file.0')
-print(data.data_keys)
+print(data.all_data_keys)
 ```
 ```console
 ['igsm', 'phsm', 'sm', 'a', 'igrf', 'rf']
 ```
 
-Each key is also an attribute of the `OPUSFile` instance that returns either a `Data` or `Data3D` class.  You can get
-the `x` and `y` array values (in the units they were saved in) as direct attributes to the `Data` class:
+Each key is also an attribute of the `OPUSFile` instance that returns either a `Data` (single spectra) or `DataSeries`
+(series of spectra) class.  You can use the `data_keys` attribute to retrieve a list of only the single-spectra `Data`
+keys in the class, or the `series_keys` attribute to retrieve a list of only the `DataSeries` keys.
 
-```python
-data = read_opus('file.0')
-plt.plot(data.a.x, data.a.y)
-plt.ylim((0, 1))
-plt.show()
-```
-
-For spectra with wavenumber as valid unit (e.g. single-channel or ratioed spectra), the `x` array can be given in `cm⁻¹`
-or `µm` units by using the attributes `wn` or `wl` respectively:
-
-```python
-data = read_opus('file.0')
-plt.plot(data.sm.wl, data.sm.y)
-plt.show()
-```
-
-You can also iterate over all data spectra in the file using the `iter_data()` method:
+You can also iterate over these data keys using the `iter_all_data()`, `iter_data()` and `iter_series()` class
+methods:
 
 ```python
 data = read_opus('file.0')
@@ -352,9 +348,28 @@ Reference Interferogram (2019-05-03 13:31:22.358000)
 Reference Spectrum (2019-05-03 13:31:22.358000)
 ```
 
+You can access the `x` and `y` arrays of a `Data` or `DataSeries` class:
+
+```python
+data = read_opus('file.0')
+plt.plot(data.a.x, data.a.y)  # Plot absorbance
+plt.ylim((0, 1))
+plt.show()
+```
+
+For spectra with wavenumber as valid unit (e.g. single-channel or ratioed spectra), the `x` array can be given in 
+wavenumber [`cm⁻¹`] or wavelength [`µm`] or modulation frequency [`Hz`] units by using the attributes `wn`, `wl`, or `f`
+respectively:
+
+```python
+data = read_opus('file.0')
+plt.plot(data.sm.wl, data.sm.y)
+plt.show()
+```
+
 Each data block in an OPUS file also contains a small parameter block with information such as the min/max y-value
 (mny, mxy), x-units (dxu), number of data points (npt), etc.  These can be accessed as direct attributes to the `Data`
-class, or through the `params` attribute:
+class, or through the `Data.params` attribute:
 
 ```python
 data = read_opus('file.0')
@@ -366,10 +381,11 @@ Sample spectra y-min: 1.2147593224653974e-05 y-max: 0.03543896973133087
 For full API documentation, see:  
 `OPUSFile`: `brukeropus.file.file.OPUSFile`  
 `Data`: `brukeropus.file.file.Data`  
-`Data3D`: `brukeropus.file.file.Data3D`
+`DataSeries`: `brukeropus.file.file.DataSeries`
 '''
 from brukeropus.file.file import *
 from brukeropus.file.block import *
 from brukeropus.file.parse import *
+from brukeropus.file.labels import *
 from brukeropus.file.utils import *
 from brukeropus.file.constants import *

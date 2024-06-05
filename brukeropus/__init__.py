@@ -12,20 +12,21 @@ pip install brukeropus
 ### Namespace
 `brukeropus` provides direct imports to the following:
 ```python
-from brukeropus import find_opus_files, read_opus, OPUSFile, Opus
+from brukeropus import find_opus_files, read_opus, OPUSFile, Opus, parse_file_and_print
 ```
 All other file functions or classes can be directly imported from the `brukeropus.file` or `brukeropus.control`
 submodules, e.g.:
 ```python
-from brukeropus.file import parse_file_and_print
+from brukeropus.file import parse_header
 ```
 It is recommended that you do **not** import from the fully qualified namespace, e.g.:
 ```python
-from brukeropus.file.utils import parse_file_and_print
+from brukeropus.file.parse import parse_header
 ```
 as that namespace is subject to change. Instead import directly from `brukeropus` or its first level submodules.
 
 ### Reading OPUS Files (Basic Usage)
+`brukeropus` can read the proprietary binary files saved by Bruker's OPUS software.
 ```python
 from brukeropus import read_opus
 from matplotlib import pyplot as plt
@@ -42,6 +43,8 @@ if 'a' in opus_file.data_keys:  # If absorbance spectra was extracted from file
 More detailed documentation on the file submodule can be found in `brukeropus.file`
 
 ### Controlling OPUS Software (Basic Usage)
+`brukeropus` can also control/communicate directly with OPUS over the DDE communication protocol.  For this to work,
+you must be on Windows and OPUS must be open and logged in.
 ```python
 from brukeropus import opus, read_opus
 from matplotlib import pyplot as plt

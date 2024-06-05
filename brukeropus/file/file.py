@@ -11,7 +11,8 @@ __docformat__ = "google"
 '''
 The `OPUSFile` class attempts to abstract away some of the complexity and rigid organization structure of Bruker's OPUS
 files while providing full access to the data contained in them.  This way, the user does not have to memorize the
-organization structure of an OPUS file to access the information.
+organization structure of an OPUS file (e.g. which parameter block contains the beamsplitter parameter) to access the
+information.
 '''
 
 class OPUSFile:
@@ -22,7 +23,8 @@ class OPUSFile:
             an `OPUSFile` object.
 
     Attributes:
-        is_opus: True if filepath points to an OPUS file, False otherwise. Also returned for dunder `__bool__()`  
+        is_opus: True if filepath points to an OPUS file, False otherwise. Also returned for dunder `__bool__()`
+        filepath: full path pointing to the OPUS file
         params: class containing all general parameter metadata for the OPUS file. To save typing, the
             three char parameters from params also become attributes of the `OPUSFile` class (e.g. bms, apt, src)  
         rf_params: class containing all reference parameter metadata for the OPUS file 
@@ -34,6 +36,8 @@ class OPUSFile:
         datetime: Returns the most recent datetime of all the data blocks stored in the file (typically result spectra)
         directory: `FileDirectory` class containing information about all the various data blocks in the file.
         history: History (file-log) containing text about how the file was generated/edited (not always saved)
+        unmatched_data_blocks: list of data `FileBlock` that were not uniquely matched to a data status block
+        unmatched_data_status_blocks: list of data status `FileBlock` that were not uniquely matched to a data block
         unknown_blocks: list of `FileBlock` that were not parsed and/or assigned to attributes into the class
 
     Data Attributes:
@@ -73,6 +77,10 @@ class OPUSFile:
             return self.directory.blocks
 
     def __init__(self, filepath):
+        '''Note: a list of `FileBlock` is initially loaded and parsed using the `FileDirectory` class.  This list is
+        located in `OPUSFile.directory.blocks`. After parsing all the file blocks (performed by the `FileBlock` class),
+        data from those blocks are saved to various attributes within the `OPUSFile` class.  Subsequently, the block is
+        removed from `OPUSFile.directory.blocks` to eliminate redundant data and reduce memory footprint.'''
         self.filepath = filepath
         self.is_opus = False
         self.data_keys = []
