@@ -82,6 +82,7 @@ plt.show()
 ```python
 pip install brukeropus
 ```
+https://pypi.org/project/brukeropus/
 ## Documentation
 https://joshduran.github.io/brukeropus/brukeropus.html
 
