@@ -77,7 +77,7 @@ def parse_header(filebytes: bytes) -> tuple:
                 **num_blocks (int32):** total number of blocks in the opus file  
             )
     '''
-    version = struct.unpack_from('d', filebytes, 4)[0]
+    version = struct.unpack_from('<d', filebytes, 4)[0]
     directory_start = struct.unpack_from('<i', filebytes, 12)[0]
     max_blocks = struct.unpack_from('<i', filebytes, 16)[0]
     num_blocks = struct.unpack_from('<i', filebytes, 20)[0]
@@ -230,7 +230,7 @@ def parse_data_series(blockbytes: bytes, dpf: int = 1) -> dict:
                     The most useful one is generally `ert`, which can be used as the time axis for 3D data plots.
             }
     '''
-    header = struct.unpack_from('6l', blockbytes, 0)
+    header = struct.unpack_from('<6i', blockbytes, 0)
     data = {
         'version': header[0],
         'num_blocks': header[1],
@@ -238,7 +238,7 @@ def parse_data_series(blockbytes: bytes, dpf: int = 1) -> dict:
         'data_size': header[3],
         'info_size': header[4],
     }
-    data['store_table'] = [struct.unpack_from('<2l', blockbytes, 24 + i * 8) for i in range(header[5])]
+    data['store_table'] = [struct.unpack_from('<2i', blockbytes, 24 + i * 8) for i in range(header[5])]
     dtype, count = get_dpf_dtype_count(dpf, data['data_size'])
     data['y'] = np.zeros((data['num_blocks'], count), dtype=dtype)
     for entry in STRUCT_3D_INFO_BLOCK:
