@@ -79,9 +79,9 @@ jobs:
         run: |
           coverage run -m pytest tests
 
-      - name: Coverage report to xml
+      - name: Coverage report to html
         run: |
-          coverage xml
+          coverage html
 
       - name: Upload coverage report
         if: matrix.os == 'ubuntu-latest' && matrix.pythonVersion == '3.13'
@@ -89,5 +89,5 @@ jobs:
         with:
           name: coverage-report
           path: |
-            coverage.xml
+            coverage.html
           retention-days: 5
