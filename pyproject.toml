@@ -5,21 +5,37 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "brukeropus"
 version = "1.1.1"
-authors = [
-  { name="Josh Duran", email="josh.m.duran@gmail.com" },
-]
+authors = [{ name = "Josh Duran", email = "josh.m.duran@gmail.com" }]
 description = "A python package for communicating with Bruker OPUS spectroscopy software and reading its binary file format."
 readme = "README.md"
 dependencies = ["numpy"]
 requires-python = ">=3.6"
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Topic :: Scientific/Engineering",
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Topic :: Scientific/Engineering",
 ]
 
 [project.urls]
 Homepage = "https://github.com/joshduran/brukeropus"
 Issues = "https://github.com/joshduran/brukeropus/issues"
 Documentation = "https://joshduran.github.io/brukeropus/brukeropus.html"
+
+[tool.coverage.run]
+source = ["brukeropus"]
+
+[tool.coverage.report]
+exclude_also = [
+  # Don't complain about missing debug-only code:
+  "def __repr__",
+  "if self\\.debug",
+
+  # Don't complain if tests don't hit defensive assertion code:
+  "raise AssertionError",
+  "raise NotImplementedError",
+]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["tests"]
