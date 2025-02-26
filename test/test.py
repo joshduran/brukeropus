@@ -5,6 +5,7 @@ PARENT_DIR = os.path.dirname(TEST_DIR)
 sys.path.insert(0, PARENT_DIR)
 from brukeropus import read_opus, find_opus_files, OPUSFile
 from brukeropus.file.utils import _print_centered
+from brukeropus.file.constants import PARAM_LABELS
 
 
 def get_all_blocks(opusfile: OPUSFile) -> list:
@@ -148,6 +149,13 @@ if __name__ == "__main__":
         print_fail('Some blocks were not parsed successfully:')
         for o in bad_parse:
             print('   ', o.rel_path)
+    # ----------------------------------------------------------------------------------------------
+    # Checks that PARAM_LABELS was correctly loaded from param_labels.json
+    print('.' * width)
+    if len(PARAM_LABELS.keys()) > 2000:
+        print_pass('param_labels.json successfully parsed: ' + str(len(PARAM_LABELS.keys())) + ' parameters')
+    else:
+        print_fail('Expected more parameter labels to be parsed, only found: ' + str(len(PARAM_LABELS.keys())))
     # # ==============================================================================================
     # # File Statistics
     # print('_' * width)
