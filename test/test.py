@@ -5,7 +5,6 @@ PARENT_DIR = os.path.dirname(TEST_DIR)
 sys.path.insert(0, PARENT_DIR)
 from brukeropus import read_opus, find_opus_files, OPUSFile
 from brukeropus.file.utils import _print_centered
-from brukeropus.file.constants import PARAM_LABELS
 
 
 def get_all_blocks(opusfile: OPUSFile) -> list:

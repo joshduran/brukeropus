@@ -7,7 +7,8 @@ previous efforts, with a goal to achieve 100% extraction accuracy.
 ### Features
 - Extracts spectral data (e.g. sample, reference, absorbance, transmittance, etc.)
 - Extracts 3D spectral data (e.g. spectral time series)
-- Extracts file metadata (e.g. beamsplitter, source, aperture, etc.)
+- Extracts file metadata (e.g. beamsplitter, source, aperture, etc.) with human readable metadata labels for over 2000
+parameters (extracted directly from OPUS software parameter file)
 - Very fast data parsing and assigning to `OPUSFile` class (limited by disk I/O)
 - Low-level parsing functions are well documented and could be used to build your own custom OPUS file class if
 `OPUSFile` does not suit your needs)
@@ -26,14 +27,6 @@ if 'a' in opus_file.data_keys:  # If absorbance spectra was extracted from file
     plt.show()  # Display plot
 ```
 ### Known Limitations
-- While all metadata can be be extracted as key: val pairs, the keys are stored as three characters (e.g. BMS, SRT, SRC)
-and are not particularly descriptive.  This package has human readable labels for over 100 of these metadata keys, but
-it is not complete.
-
-    - OPUS software should be using a local file (perhaps PARMTEXT.bin) to convert these keys to human readable lables.
-    it would be ideal to extract these labels directly from this file rather than manually adding them by hand as is
-    currently done.
-
 - I have only tested this on ~5000 files generated in my lab (all very similiar) as well as a handful of files I've
 found online (most of which had some error when being read by other tools). This package is capable of reading all of
 those files, but thorough testing on a wide variety of files is incomplete.
@@ -68,9 +61,8 @@ plt.legend()
 plt.show()
 ```
 ## Future Plans
-- Continue to improve the file reader towards 100% compliance
-- Parse "PARMTEXT.BIN" file to extract all parameter labels and setup options
-- Add a basic GUI for browsing OPUS files
+- Continue to improve the file reader towards 100% compliance (currently no known discrepancies)
+- Add additional control interface options (e.g. http or .dll)
 ## Installation
 **Requirements**
 - Python 3.6+
