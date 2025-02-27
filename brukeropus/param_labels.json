@@ -501,7 +501,7 @@
     "EWD": "Optional external program working directory",
     "EWN": "End wavenumber of QCLaser",
     "EWR": "Whole Range (0=no 1=yes)",
-    "EXD": null,
+    "EXD": "Null",
     "EXE": "Extract to (0: To Block, 1: To End of file)",
     "EXP": "Experiment",
     "EXS": "Extract from (0: From Block, 1: From Beginning of file)",
