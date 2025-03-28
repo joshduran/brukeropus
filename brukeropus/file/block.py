@@ -87,7 +87,7 @@ class FileBlock:
 
     def is_data(self):
         '''Returns True if `FileBlock` is a 1D data block (not a data series)'''
-        return self.type[2] == 0 and self.type[3] not in [0, 13] and self.type[5] != 2
+        return self.type[2] == 0 and self.type[3] not in [0, 13] and self.type[5] not in [2, 5]
 
     def is_data_series(self):
         '''Returns True if `FileBlock` is a data series block (i.e. 3D data)'''
