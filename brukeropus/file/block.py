@@ -4,7 +4,8 @@ from brukeropus.file.parse import (parse_header,
                                    parse_params,
                                    parse_data,
                                    parse_data_series,
-                                   parse_text)
+                                   parse_text,
+                                   parse_report)
 
 
 __docformat__ = "google"
@@ -84,6 +85,10 @@ class FileBlock:
     def is_file_log(self):
         '''Returns True if `FileBlock` is the file log (aka 'history') block'''
         return self.type == (0, 0, 0, 0, 0, 5)
+    
+    def is_report(self):
+        '''Returns True if `FileBlock` is a test report (associated with a spectrum in the file)'''
+        return self.type[2] == 0 and self.type[3] not in [0, 13] and self.type[5] == 5
 
     def is_data(self):
         '''Returns True if `FileBlock` is a 1D data block (not a data series)'''
@@ -115,6 +120,8 @@ class FileBlock:
             return parse_text
         elif self.is_param():
             return parse_params
+        elif self.is_report():
+            return parse_report
         elif self.is_data_series():
             return parse_data_series
         elif self.is_data():

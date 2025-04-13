@@ -70,7 +70,7 @@ CODE_5 = {0: '',
           2: '(Series)',
           3: 'Molecular Structure',
           4: 'Macro',
-          5: 'File Log',
+          5: 'History/Report',
           }
 
 # care must be taken when using 3-letter keys to avoid cross contaminating with 3-char parameter keys
@@ -139,6 +139,7 @@ SUBREPORT_TYPE_FMT = {
     5: '<f',
     6: '<d',
     7: '<I',
+    # > 1000: '<s' where length = type int - 1000
 }
 
 
