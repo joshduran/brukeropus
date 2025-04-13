@@ -134,6 +134,14 @@ STRUCT_3D_INFO_BLOCK = [
 ]
 
 
+SUBREPORT_TYPE_FMT = {
+    3: '<i',
+    5: '<f',
+    6: '<d',
+    7: '<I',
+}
+
+
 Y_LABELS = {
     'sm': 'Sample Spectrum',
     'rf': 'Reference Spectrum',
