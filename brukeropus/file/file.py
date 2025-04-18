@@ -100,20 +100,20 @@ class OPUSFile:
             self._init_history()
             self._init_data()
             self.unknown_blocks = [block for block in self.directory.blocks]
-            self._remove_blocks(self.unknown_blocks)
+            self._remove_blocks(self.unknown_blocks, 'unknown_blocks')
 
     def _init_directory(self):
         '''Moves the directory `FileBlock` into the directory attribute.'''
         dir_block = [b for b in self.directory.blocks if b.is_directory()][0]
         self.directory.block = dir_block
-        self._remove_blocks([dir_block])
+        self._remove_blocks([dir_block], 'directory')
 
     def _init_params(self, attr: str, is_param: str):
         '''Sets `Parameter` attributes (`self.params`, `self.rf_params`) from directory blocks and removes them from
         the directory.'''
         blocks = [b for b in self.directory.blocks if getattr(b, is_param)() and type(b.data) is dict]
         setattr(self, attr, Parameters(blocks))
-        self._remove_blocks(blocks)
+        self._remove_blocks(blocks, attr)
 
     def _init_history(self):
         '''Sets the history attribute to the parsed history (file_log) data and removes the block.'''
@@ -121,7 +121,7 @@ class OPUSFile:
         if len(hist_blocks) > 0:
             self.special_blocks = self.special_blocks + hist_blocks
             self.history = '\n\n'.join([b.data for b in hist_blocks])
-        self._remove_blocks(hist_blocks)
+        self._remove_blocks(hist_blocks, 'history')
 
     def _get_unused_data_key(self, data_block: FileBlock):
         '''Returns a shorthand attribute key for the data_block type. If key already exists'''
@@ -158,15 +158,25 @@ class OPUSFile:
                 self.series_keys.append(key)
             setattr(self, key, data_class(data, status, key=key, vel=vel))
             self.all_data_keys.append(key)
-            self._remove_blocks([data, status])
+            self._remove_blocks([data, status], key)
         self.unmatched_data_blocks = [b for b in self.directory.blocks if b.is_data() or b.is_data_series()]
-        self._remove_blocks(self.unmatched_data_blocks)
+        self._remove_blocks(self.unmatched_data_blocks, 'unmatched_data_blocks')
         self.unmatched_data_status_blocks = [b for b in self.directory.blocks if b.is_data_status()]
-        self._remove_blocks(self.unmatched_data_status_blocks)
+        self._remove_blocks(self.unmatched_data_status_blocks, 'unmatched_data_status_blocks')
+    
+    def _get_toc_entry(self, block: FileBlock, attr_name: str):
+        entry = {'type': block.type,
+                 'label': get_block_type_label(block.type),
+                 'attr': attr_name,
+                 'start': block.start,
+                 'size': block.size}
+        return entry        
 
-    def _remove_blocks(self, blocks: list):
+    def _remove_blocks(self, blocks: list, attr_name: str):
         '''Removes blocks from the directory whose data has been stored elsewhere in class (e.g. params, data, etc.).'''
         starts = [b.start for b in blocks]
+        for b in blocks:
+            self.directory.toc.append(self._get_toc_entry(b, attr_name))
         self.directory.blocks = [b for b in self.directory.blocks if b.start not in starts]
 
     def iter_data(self):

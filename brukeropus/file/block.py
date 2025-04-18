@@ -163,6 +163,7 @@ class FileDirectory:
             block.parse()
             blocks.append(block)
         self.blocks = blocks
+        self.toc = []
 
 
 def is_data_status_type_match(data_block: FileBlock, data_status_block: FileBlock) -> bool:
