@@ -39,6 +39,7 @@ class OPUSFile:
         unmatched_data_blocks: list of data `FileBlock` that were not uniquely matched to a data status block
         unmatched_data_status_blocks: list of data status `FileBlock` that were not uniquely matched to a data block
         unknown_blocks: list of `FileBlock` that were not parsed and/or assigned to attributes into the class
+        parse_error_blocks: list of `FileBlock` that raised an error while attempting to parse
 
     Data Attributes:
         **sm:** Single-channel sample spectra
@@ -101,6 +102,8 @@ class OPUSFile:
             self._init_data()
             self.unknown_blocks = [block for block in self.directory.blocks]
             self._remove_blocks(self.unknown_blocks, 'unknown_blocks')
+            self.parse_error_blocks = [block for block in self.directory.parse_error_blocks]
+            self._remove_blocks(self.parse_error_blocks, 'parse_error_blocks')
 
     def _init_directory(self):
         '''Moves the directory `FileBlock` into the directory attribute.'''

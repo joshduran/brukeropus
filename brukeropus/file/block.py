@@ -32,7 +32,7 @@ class FileBlock:
         parser: name of parsing function if parsing was successful
     '''
 
-    __slots__ = ('type', 'size', 'start', 'bytes', 'data', 'parser', 'keys')
+    __slots__ = ('type', 'size', 'start', 'bytes', 'data', 'parser', 'parse_error', 'keys')
 
     def __init__(self, filebytes: bytes, block_type: tuple, size: int, start: int):
         self.bytes = filebytes[start: start + size]
@@ -41,6 +41,7 @@ class FileBlock:
         self.start = start
         self.data = None
         self.parser = None
+        self.parse_error = None
 
     def __str__(self):
         label = self.get_label()
@@ -53,7 +54,7 @@ class FileBlock:
                 self.keys = list(self.data.keys())
             self._clear_parsed_bytes(parser=parser)
         except Exception as e:
-            self.data = 'Error parsing: ' + str(e)
+            self.parse_error = 'Error parsing (' + parser.__name__ + '): ' + str(e)
 
     def _clear_parsed_bytes(self, parser):
         '''Clear raw bytes that have been parsed (and log the parser for reference)'''
@@ -157,13 +158,16 @@ class FileDirectory:
     def __init__(self, filebytes: bytes):
         self.version, self.start, self.max_blocks, self.num_blocks = parse_header(filebytes)
         size = self.max_blocks * 3 * 4
-        blocks = []
+        self.blocks = []
+        self.parse_error_blocks = []
+        self.toc = []
         for block_type, size, start in parse_directory(filebytes[self.start: self.start + size]):
             block = FileBlock(filebytes=filebytes, block_type=block_type, size=size, start=start)
             block.parse()
-            blocks.append(block)
-        self.blocks = blocks
-        self.toc = []
+            if block.parse_error:
+                self.parse_error_blocks.append(block)
+            else:
+                self.blocks.append(block)
 
 
 def is_data_status_type_match(data_block: FileBlock, data_status_block: FileBlock) -> bool:
