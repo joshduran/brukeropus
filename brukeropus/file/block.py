@@ -1,4 +1,5 @@
-from brukeropus.file.labels import get_block_type_label, get_data_key
+from brukeropus.file.labels import get_data_key
+from brukeropus.file.constants import TYPE_CODE_LABELS, CODE_3_ABR
 from brukeropus.file.parse import (parse_header,
                                    parse_directory,
                                    parse_params,
@@ -36,7 +37,7 @@ class FileBlock:
 
     def __init__(self, filebytes: bytes, block_type: tuple, size: int, start: int):
         self.bytes = filebytes[start: start + size]
-        self.type = block_type
+        self.type = BlockType(block_type)
         self.size = size
         self.start = start
         self.data = None
@@ -101,7 +102,7 @@ class FileBlock:
 
     def get_label(self):
         '''Returns a friendly string label that describes the block type'''
-        return get_block_type_label(self.type)
+        return self.type.label
 
     def get_data_key(self):
         '''If block is a data block, this function will return a shorthand key to reference that data.
@@ -136,6 +137,70 @@ class FileBlock:
         parser = self.get_parser()
         if parser is not None:
             self._try_parser(parser)
+
+
+class BlockType(tuple):
+    '''Six-integer tuple representing the category (type) of block within an OPUS file.
+
+    Each block in an OPUS file is categorized with six integers, for example (3, 1, 1, 2, 0, 0). This class stores the
+    integers as a tuple, but extends the class to provide a few useful functions.
+
+    Args:
+        block_type: six integers found in the OPUS file directory that describe the block type.
+
+    Attributes:
+        label: human-readable label that describes the block category
+    '''
+
+    def get_label(self):
+        '''Converts a six-integer tuple block type into a human readable label.
+
+        This package includes the majority of type codes that OPUS uses, but in the event a type code label is not known,
+        this function will return: "Unknown 0 4" where the first number is the position index, and the second is the
+        unknown value integer.
+
+        Args:
+            block_type: six integer tuple found in the OPUS file directory that describes the block type
+
+        Returns:
+            label (str): human-readable string label
+        '''
+        labels = [self._get_sub_type_label(idx) for idx in range(len(self)) if self[idx] > 0
+                  and self._get_sub_type_label(idx) != '']
+        return ' '.join(labels)
+    
+    def _get_sub_type_label(self, pos_idx: int):
+        '''Returns the sub-type label of a file block given the position index and value of the type code.
+        
+        Args:
+            pos_idx: positional index of the type code (0 - 5)
+
+        Returns:
+            label (str): human-readable string label that describes the type code at that index.
+        '''
+        try:
+            return TYPE_CODE_LABELS[pos_idx][self[pos_idx]]
+        except KeyError:
+            return 'Unknown ' + str(pos_idx) + ' ' + str(self[pos_idx])
+    
+    def get_aligned_tuple_str(self, pad=1):
+        return f'{self[0]}' + f'{self[1]:2}' + f'{self[2]:3}' + f'{self[3]:3}' + f'{self[4]:2}' + f'{self[5]:2}'
+    
+    def __repr__(self):
+        return 'BlockType((' + ', '.join([str(i) for i in self]) + '))'
+    
+    def __str__(self):
+        return self.get_aligned_tuple_str() + '   ' + self.get_label()
+    
+    def __new__(cls, iterable):
+        instance = super().__new__(cls, iterable)
+        if len(instance) != 6 or any(type(i) != int for i in instance):
+            raise ValueError('BlockType input must be a 6-integer iterable, but a value of:' + str(iterable) + ' was given')
+        return instance
+
+    def __init__(self, iterable):
+      super().__init__()
+      self.label = self.get_label()
 
 
 class FileDirectory:

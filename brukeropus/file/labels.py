@@ -1,3 +1,4 @@
+import warnings
 from brukeropus.file.constants import TYPE_CODE_LABELS, PARAM_LABELS, CODE_3_ABR
 
 
@@ -25,6 +26,8 @@ def get_param_label(param: str):
 
 def get_type_code_label(pos_idx: int, val: int):
     '''Returns the type code label of a file block given the position index and value of the type code.
+    
+    **Depreciation Warning:** function will be removed soon. Functionality has been integrated into `BlockType` class.
 
     The file blocks on an OPUS file feature six-integer type codes, for example (3, 1, 1, 2, 0, 0), that categorize the
     contents of the file block. The positional index defines the category, while the value at that index defines the
@@ -47,6 +50,7 @@ def get_type_code_label(pos_idx: int, val: int):
     Returns:
         label (str): human-readable string label that describes the type code.
     '''
+    warnings.warn('Depreciation warning: get_type_code_label will soon be removed. This functionality has moved to BlockType class')
     try:
         return TYPE_CODE_LABELS[pos_idx][val]
     except KeyError:
@@ -55,6 +59,8 @@ def get_type_code_label(pos_idx: int, val: int):
 
 def get_block_type_label(block_type: tuple):
     '''Converts a six-integer tuple block type into a human readable label.
+    
+    **Depreciation Warning:** function will be removed soon. Functionality has been integrated into `BlockType` class.
 
     Args:
         block_type: six integer tuple found in the OPUS file directory that describes the block type
@@ -62,6 +68,7 @@ def get_block_type_label(block_type: tuple):
     Returns:
         label (str): human-readable string label
     '''
+    warnings.warn('Depreciation warning: get_block_type_label will soon be removed. This functionality has moved to BlockType class')
     labels = [get_type_code_label(idx, val) for idx, val in enumerate(block_type) if val > 0
               and get_type_code_label(idx, val) != '']
     return ' '.join(labels)

@@ -2,7 +2,7 @@ import datetime
 import numpy as np
 
 from brukeropus.file.block import pair_data_and_status_blocks, FileBlock, FileDirectory
-from brukeropus.file.utils import get_block_type_label, get_param_label, _print_block_header, _print_cols
+from brukeropus.file.utils import get_param_label, _print_block_header, _print_cols
 from brukeropus.file.parse import read_opus_file_bytes
 
 
@@ -169,7 +169,7 @@ class OPUSFile:
     
     def _get_toc_entry(self, block: FileBlock, attr_name: str):
         entry = {'type': block.type,
-                 'label': get_block_type_label(block.type),
+                 'label': block.type.label,
                  'attr': attr_name,
                  'start': block.start,
                  'size': block.size}
@@ -206,7 +206,7 @@ class OPUSFile:
             _print_block_header(title + ' (' + attr + ')', width=width, sep='=')
             blocks = getattr(self, attr).blocks
             for block in blocks:
-                label = get_block_type_label(block.type)
+                label = block.type.label
                 _print_block_header(label, width=width, sep='.')
                 _print_cols(('Key', 'Label', 'Value'), col_widths=col_widths)
                 for key in block.keys:
