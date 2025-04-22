@@ -61,7 +61,7 @@ plt.legend()
 plt.show()
 ```
 ## Future Plans
-- Continue to improve the file reader towards 100% compliance (currently no known discrepancies)
+- Continue to improve the file reader towards 100% compliance.
 - Add additional control interface options (e.g. http or .dll)
 ## Installation
 **Requirements**
