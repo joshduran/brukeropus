@@ -169,7 +169,6 @@ class OPUSFile:
     
     def _get_toc_entry(self, block: FileBlock, attr_name: str):
         entry = {'type': block.type,
-                 'label': block.type.label,
                  'attr': attr_name,
                  'start': block.start,
                  'size': block.size}

@@ -89,8 +89,8 @@ class FileBlock:
         return self.type == (0, 0, 0, 0, 0, 5)
     
     def is_report(self):
-        '''Returns True if `FileBlock` is a test report (associated with a spectrum in the file)'''
-        return self.type[2] == 0 and self.type[3] not in [0, 13] and self.type[5] == 5
+        '''Returns True if `FileBlock` is a test report'''
+        return self.type in [(0, 0, 0, 0, 0, 3), (0, 0, 0, 0, 0, 4)] or (self.type[2] == 0 and self.type[3] not in [0, 13] and self.type[5] == 5)
 
     def is_data(self):
         '''Returns True if `FileBlock` is a 1D data block (not a data series)'''
