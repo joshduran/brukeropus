@@ -1,8 +1,7 @@
-import datetime
-import numpy as np
-
 from brukeropus.file.block import FileBlock, pair_data_and_status_blocks
 from brukeropus.file.directory import FileDirectory
+from brukeropus.file.data import Data, DataSeries
+from brukeropus.file.params import Parameters
 from brukeropus.file.utils import get_param_label, _print_block_header, _print_cols
 from brukeropus.file.parse import read_opus_file_bytes
 
@@ -168,7 +167,7 @@ class OPUSFile:
         self._remove_blocks(self.unmatched_data_blocks, 'unmatched_data_blocks')
         self.unmatched_data_status_blocks = [b for b in self.directory.blocks if b.is_data_status()]
         self._remove_blocks(self.unmatched_data_status_blocks, 'unmatched_data_status_blocks')
-    
+
     def _get_toc_entry(self, block: FileBlock, attr_name: str):
         entry = {'type': block.type,
                  'attr': attr_name,
@@ -197,7 +196,7 @@ class OPUSFile:
         '''Generator that yields all the various Data and DataSeries classes from the OPUSFile'''
         for key in self.all_data_keys:
             yield getattr(self, key)
-    
+
     def print_parameters(self, key_width=7, label_width=40, value_width=53):
         '''Prints all the parameter metadata to the console (organized by block)'''
         width = key_width + label_width + value_width
@@ -214,229 +213,6 @@ class OPUSFile:
                     label = get_param_label(key)
                     value = getattr(getattr(self, attr), key)
                     _print_cols((key.upper(), label, value), col_widths=col_widths)
-
-
-class Parameters:
-    '''Class containing parameter metadata of an OPUS file.
-
-    Parameters of an OPUS file are stored as key, val pairs, where the key is always three chars.  For example, the
-    beamsplitter is stored in the `bms` attribute, source in `src` etc.  A list of known keys, with friendly label can
-    be found in `brukeropus.file.constants.PARAM_LABELS`.  The keys in an OPUS file are not case sensitive, and stored
-    in all CAPS (i.e. `BMS`, `SRC`, etc.) but this class uses lower case keys to follow python convention.  The class is
-    initialized from a list of `FileBlock` parsed as parameters.  The key, val items in blocks of the list are combined
-    into one parameter class, so care must be taken not to pass blocks that will overwrite each others keys.  Analagous
-    to a dict, the keys, values, and (key, val) can be iterated over using the functions: `keys()`, `values()`, and
-    `items()` respectively.
-
-    Args:
-        blocks: list of `FileBlock`; that has been parsed as parameters.
-
-    Attributes:
-        xxx: parameter attributes are stored as three char keys. Which keys are generated depends on the list of
-            `FileBlock` that is used to initialize the class. If input list contains a single data status
-            `FileBlock`, attributes will include: `fxv`, `lxv`, `npt` (first x-val, last x-val, number of points),
-            etc. Other blocks produce attributes such as: `bms`, `src`, `apt` (beamsplitter, source, aperture) etc. A
-            full list of keys available in a given `Parameters` instance are given by the `keys()` method.
-        datetime: if blocks contain the keys: `dat` (date) and `tim` (time), the `datetime` attribute of this class will
-            be set to a python `datetime` object. Currently, only data status blocks are known to have these keys. If
-            `dat` and `tim` are not present in the class, the `datetime` attribute will return `None`.
-        blocks: list of `FileBlock` with data removed to save memory (keys saved for reference)
-    '''
-    __slots__ = ('_params', 'datetime', 'blocks')
-
-    def __init__(self, blocks: list):
-        self._params = dict()
-        if type(blocks) is FileBlock:
-            blocks = [blocks]
-        for block in blocks:
-            self._params.update(block.data)
-            block.data = None
-        self.blocks = blocks
-        self._set_datetime()
-
-    def __getattr__(self, name):
-        if name.lower() in self._params.keys():
-            return self._params[name.lower()]
-        else:
-            text = str(name) + ' not a valid attribute. For list of valid parameter keys, use: .keys()'
-            raise AttributeError(text)
-
-    def __getitem__(self, item):
-        return self._params.__getitem__(item)
-
-    def _set_datetime(self):
-        if 'dat' in self.keys() and 'tim' in self.keys():
-            try:
-                date_str = self.dat
-                time_str = self.tim
-                dt_str = date_str + '-' + time_str[:time_str.index(' (')]
-                try:
-                    fmt = '%d/%m/%Y-%H:%M:%S.%f'
-                    dt = datetime.datetime.strptime(dt_str, fmt)
-                except:
-                    try:
-                        fmt = '%Y/%m/%d-%H:%M:%S.%f'
-                        dt = datetime.datetime.strptime(dt_str, fmt)
-                    except:
-                        self.datetime = None
-                self.datetime = dt
-            except:
-                self.datetime = None
-        else:
-            self.datetime = None
-
-    def keys(self):
-        '''Returns a `dict_keys` class of all valid keys in the class (i.e. dict.keys())'''
-        return self._params.keys()
-
-    def values(self):
-        '''Returns a `dict_values` class of all the values in the class (i.e. dict.values())'''
-        return self._params.values()
-
-    def items(self):
-        '''Returns a `dict_items` class of all the values in the class (i.e. dict.items())'''
-        return self._params.items()
-
-
-class Data:
-    '''Class containing array data and associated parameter/metadata from an OPUS file.
-
-    Args:
-        data_block: parsed `FileBlock` instance of a data block
-        data_status_block: `parsed FileBlock` instance of a data status block which contains metadata about the data
-            block. This block is a parameter block.
-        key: attribute name (string) assigned to the data
-        vel: mirror velocity setting for the measurement (from param or rf_param block as appropriate)
-
-    Attributes:
-        params: `Parameter` class with metadata associated with the data block such as first x point: `fxp`, last x
-            point: `lxp`, number of points: `npt`, date: `dat`, time: `tim` etc.
-        y: 1D `numpy` array containing y values of data block
-        x: 1D `numpy` array containing x values of data block. Units of x array are given by `dxu` parameter.
-        label: human-readable string label describing the data block (e.g. Sample Spectrum, Absorbance, etc.)
-        key: attribute name (string) assigned to the data
-        vel: mirror velocity setting for the measurement (used to calculate modulation frequency)
-        block: data `FileBlock` used to generate the `Data` class
-        blocks: [data, data_status] `FileBlock` used to generate the `Data` class
-
-    Extended Attributes:
-        **wn:** Returns the x array in wavenumber (cm⁻¹) units regardless of what units the x array was originally
-            saved in. This is only valid for spectral data blocks such as sample, reference, transmission, etc., not
-            interferogram or phase blocks.
-        **wl:** Returns the x array in wavelength (µm) units regardless of what units the x array was originally
-            saved in. This is only valid for spectral data blocks such as sample, reference, transmission, etc., not
-            interferogram or phase blocks.
-        **f:** Returns the x array in modulation frequency units (Hz) regardless of what units the x array was
-            originally saved in. This is only valid for spectral data blocks such as sample, reference, transmission,
-            etc., not interferogram or phase blocks.
-        **datetime:** Returns a `datetime` class of when the data was taken (extracted from data status parameter
-            block).  
-        **xxx:** the various three char parameter keys from the `params` attribute can be directly called from the 
-            `Data` class for convenience. Common parameters include `dxu` (x units), `mxy` (max y value), `mny` (min y
-            value), etc.
-    '''
-    __slots__ = ('key', 'params', 'y', 'x', 'label', 'vel', 'block', 'blocks')
-
-    def __init__(self, data_block: FileBlock, data_status_block: FileBlock, key: str, vel: float):
-        self.key = key
-        self.params = Parameters(data_status_block)
-        y = data_block.data
-        self.y = self.params.csf * y[:self.params.npt]    # Trim extra values on some spectra
-        self.x = np.linspace(self.params.fxv, self.params.lxv, self.params.npt)
-        self.label = data_block.get_label()
-        self.vel = vel
-        data_block.data = None
-        self.block = data_block
-        self.blocks = self.params.blocks + [self.block]
-
-    def __getattr__(self, name):
-        if name.lower() == 'wn' and self.params.dxu in ('WN', 'MI', 'LGW'):
-            return self._get_wn()
-        elif name.lower() == 'wl' and self.params.dxu in ('WN', 'MI', 'LGW'):
-            return self._get_wl()
-        elif name.lower() == 'f' and self.params.dxu in ('WN', 'MI', 'LGW'):
-            return self._get_freq()
-        elif name.lower() in self.params.keys():
-            return getattr(self.params, name.lower())
-        elif name == 'datetime':
-            return self.params.datetime
-        else:
-            text = str(name) + ' is not a valid attribute for Data: ' + str(self.key)
-            raise AttributeError(text)
-
-    def _get_wn(self):
-        if self.params.dxu == 'WN':
-            return self.x
-        elif self.params.dxu == 'MI':
-            return 10000. / self.x
-        elif self.params.dxu == 'LGW':
-            return np.exp(self.x)
-
-    def _get_wl(self):
-        if self.params.dxu == 'WN':
-            return 10000. / self.x
-        elif self.params.dxu == 'MI':
-            return self.x
-        elif self.params.dxu == 'LGW':
-            return 10000 / np.exp(self.x)
-
-    def _get_freq(self):
-        vel = 1000 * np.float(self.vel) / 7900  # cm/s
-        return vel * self.wn
-
-
-class DataSeries(Data):
-    '''Class containing a data series (3D specra) and associated parameter/metadata from an OPUS file.
-
-    Args:
-        data_block: parsed `FileBlock` instance of a data block
-        data_status_block: `parsed FileBlock` instance of a data status block which contains metadata about the data
-            block. This block is a parameter block.
-        key: attribute name (string) assigned to the data
-        vel: mirror velocity setting for measurement (from param or rf_param block as appropriate)
-
-    Attributes:
-        params: `Parameter` class with metadata associated with the data block such as first x point: `fxp`, last x
-            point: `lxp`, number of points: `npt`, date: `dat`, time: `tim` etc.
-        y: 2D numpy array containing y values of data block
-        x: 1D numpy array containing x values of data block. Units of x array are given by `.dxu` attribute.
-        num_spectra: number of spectra in the series (i.e. length of y)
-        label: human-readable string label describing the data block (e.g. Sample Spectrum, Absorbance, etc.)
-        key: attribute name (string) assigned to the data
-        vel: mirror velocity setting for measurement (used to calculate modulation frequency)
-        block: data `FileBlock` used to generate the `DataSeries` class
-        blocks: [data, data_status] `FileBlock` used to generate the `DataSeries` class
-
-    Extended Attributes:
-        **wn:** Returns the x array in wavenumber (cm⁻¹) units regardless of what units the x array was originally saved
-            in. This is only valid for spectral data blocks such as sample, reference, transmission, etc., not
-            interferogram or phase blocks.  
-        **wl:** Returns the x array in wavelength (µm) units regardless of what units the x array was originally saved
-            in. This is only valid for spectral data blocks such as sample, reference, transmission, etc., not
-            interferogram or phase blocks.  
-        **datetime:** Returns a `datetime` class of when the data was taken (extracted from data status parameter
-            block).  
-        **xxx:** the various three char parameter keys from the `params` attribute can be directly called from the data
-            class for convenience. Several of these parameters return arrays, rather than singular values because they
-            are recorded for every spectra in the series, e.g. `npt`, `mny`, `mxy`, `srt`, 'ert', `nsn`.
-    '''
-    __slots__ = ('key', 'params', 'y', 'x', 'label', 'vel', 'block', 'blocks', 'num_spectra')
-
-    def __init__(self, data_block: FileBlock, data_status_block: FileBlock, key: str, vel: float):
-        self.key = key
-        self.params = Parameters(data_status_block)
-        data = data_block.data
-        self.y = data['y'][:, :self.params.npt]    # Trim extra values on some spectra
-        self.x = np.linspace(self.params.fxv, self.params.lxv, self.params.npt)
-        self.num_spectra = data['num_blocks']
-        for key, val in data.items():
-            if key not in ['y', 'version', 'offset', 'num_blocks', 'data_size', 'info_size']:
-                self.params._params[key] = val
-        self.label = data_block.get_label()
-        self.vel = vel
-        data_block.data = None
-        self.block = data_block
-        self.blocks = self.params.blocks + [self.block]
 
 
 def read_opus(filepath: str) -> OPUSFile:
