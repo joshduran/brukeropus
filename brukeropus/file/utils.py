@@ -1,5 +1,4 @@
-import textwrap, re, os
-from brukeropus.file.constants import TYPE_CODE_LABELS, PARAM_LABELS, CODE_3_ABR
+import re, os
 from brukeropus.file.block import FileBlock, BlockType
 from brukeropus.file.parse import read_opus_file_bytes, parse_header, parse_directory
 from brukeropus.file.labels import get_param_label
