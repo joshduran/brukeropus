@@ -392,5 +392,6 @@ from brukeropus.file.file import *
 from brukeropus.file.labels import *
 from brukeropus.file.params import *
 from brukeropus.file.parse import *
+from brukeropus.file.report import *
 from brukeropus.file.utils import *
 

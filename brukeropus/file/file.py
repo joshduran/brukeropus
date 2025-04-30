@@ -1,9 +1,12 @@
+import os
 from brukeropus.file.block import FileBlock, pair_data_and_status_blocks
 from brukeropus.file.directory import FileDirectory
 from brukeropus.file.data import Data, DataSeries
 from brukeropus.file.params import Parameters
-from brukeropus.file.utils import get_param_label, _print_block_header, _print_cols
 from brukeropus.file.parse import read_opus_file_bytes
+from brukeropus.file.report import Report
+from brukeropus.file.utils import get_param_label, _print_block_header, _print_cols
+
 
 
 __docformat__ = "google"
@@ -26,6 +29,7 @@ class OPUSFile:
     Attributes:
         is_opus: True if filepath points to an OPUS file, False otherwise. Also returned for dunder `__bool__()`
         filepath: full path pointing to the OPUS file
+        name: base filename of the OPUS file
         params: class containing all general parameter metadata for the OPUS file. To save typing, the
             three char parameters from params also become attributes of the `OPUSFile` class (e.g. bms, apt, src)  
         rf_params: class containing all reference parameter metadata for the OPUS file 
@@ -35,6 +39,7 @@ class OPUSFile:
             This only includes data series (i.e. omits 1D `Data`).
         all_data_keys: list of all `Data` and `DataSeries` attributes stored in the file (1D and series comingled).
         datetime: Returns the most recent datetime of all the data blocks stored in the file (typically result spectra)
+        reports: list of `Report` class containing all reports in the file.
         directory: `FileDirectory` class containing information about all the various data blocks in the file.
         history: History (file-log) containing text about how the file was generated/edited (not always saved)
         unmatched_data_blocks: list of data `FileBlock` that were not uniquely matched to a data status block
@@ -84,6 +89,7 @@ class OPUSFile:
         data from those blocks are saved to various attributes within the `OPUSFile` class.  Subsequently, the block is
         removed from `OPUSFile.directory.blocks` to eliminate redundant data and reduce memory footprint.'''
         self.filepath = filepath
+        self.name = os.path.basename(filepath)
         self.is_opus = False
         self.data_keys = []
         self.series_keys = []
@@ -99,6 +105,7 @@ class OPUSFile:
             self._init_directory()
             self._init_params('rf_params', 'is_rf_param')
             self._init_params('params', 'is_sm_param')
+            self._init_reports()
             self._init_history()
             self._init_data()
             self.unknown_blocks = [block for block in self.directory.blocks]
@@ -118,6 +125,18 @@ class OPUSFile:
         blocks = [b for b in self.directory.blocks if getattr(b, is_param)() and type(b.data) is dict]
         setattr(self, attr, Parameters(blocks))
         self._remove_blocks(blocks, attr)
+    
+    def _init_reports(self):
+        '''Adds all reports (`Report`) from the file to the `.reports` attribute.'''
+        self.reports = []
+        report_blocks = [b for b in self.directory.blocks if b.is_report()]
+        for b in report_blocks:
+            try:
+                self.reports.append(Report(b))
+            except Exception as e:
+                b.error = e
+                self.reports.append(b)
+        self._remove_blocks(report_blocks, 'reports')
 
     def _init_history(self):
         '''Sets the history attribute to the parsed history (file_log) data and removes the block.'''
