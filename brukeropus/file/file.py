@@ -1,8 +1,8 @@
 import datetime
 import numpy as np
 
-from brukeropus.file.block import FileBlock
-from brukeropus.file.directory import pair_data_and_status_blocks, FileDirectory
+from brukeropus.file.block import FileBlock, pair_data_and_status_blocks
+from brukeropus.file.directory import FileDirectory
 from brukeropus.file.utils import get_param_label, _print_block_header, _print_cols
 from brukeropus.file.parse import read_opus_file_bytes
 
@@ -15,6 +15,7 @@ files while providing full access to the data contained in them.  This way, the 
 organization structure of an OPUS file (e.g. which parameter block contains the beamsplitter parameter) to access the
 information.
 '''
+
 
 class OPUSFile:
     '''Class that contains the data and metadata contained in a bruker OPUS file.
