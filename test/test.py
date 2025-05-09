@@ -11,7 +11,8 @@ from brukeropus.file.constants import PARAM_LABELS
 def get_all_blocks(opusfile: OPUSFile) -> list:
     '''Returns a list of all `FileBlock` in an `OPUSFile` instance.'''
     blocks = [opusfile.directory.block] + opusfile.special_blocks + opusfile.unknown_blocks + \
-        opusfile.unmatched_data_blocks + opusfile.unmatched_data_status_blocks
+        opusfile.unmatched_data_blocks + opusfile.unmatched_data_status_blocks + \
+            [report.block for report in opusfile.reports]
     if hasattr(opusfile, 'params'):
         blocks = blocks + opusfile.params.blocks
     if hasattr(opusfile, 'rf_params'):

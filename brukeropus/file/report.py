@@ -48,11 +48,13 @@ class Report:
                 data['info'][key]: 
                     data['info']['v' + key[1:]] for key in data['info'].keys() if re.search('h[0-9][0-9]', key)
             }
+        self.sub = []
         if 'subreports' in data.keys():
-            self.sub = []
             for i, subreport in enumerate(data['subreports']):
                 title = data['info']['u' + f'{i:02}']
                 self.sub.append(ReportTable(title=title, **subreport))
+        self._data = data
+        self.block.data = None
 
     def __repr__(self):
         contents = []

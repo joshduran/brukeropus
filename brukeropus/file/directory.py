@@ -23,6 +23,7 @@ class FileDirectory:
         max_blocks: maximum number of blocks supported by file
         num_blocks: total number of blocks in the file
         blocks: list of `FileBlock` from the file. The class parses these blocks upon initilization of the class.
+        parse_error_blocks: list of `FileBlock` that encountered an error when attempting to parse the binary data.
     '''
     def __init__(self, filebytes: bytes):
         self.version, self.start, self.max_blocks, self.num_blocks = parse_header(filebytes)

@@ -136,9 +136,10 @@ STRUCT_3D_INFO_BLOCK = [
 
 SUBREPORT_TYPE_FMT = {
     3: '<i',
+    4: '<i',
     5: '<f',
     6: '<d',
-    7: '<I',
+    7: '<i',
     # > 1000: '<s' where length = type int - 1000
 }
 

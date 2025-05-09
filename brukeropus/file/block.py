@@ -15,7 +15,7 @@ class BlockType(tuple):
     '''Six-integer tuple representing the category (type) of block within an OPUS file.
 
     Each block in an OPUS file is categorized with six integers, for example (3, 1, 1, 2, 0, 0). This class stores the
-    integers as a tuple, but extends the class to provide a few useful functions.
+    integers as a `tuple`, but extends the `tuple` class to provide a few useful functions/attributes.
 
     Args:
         block_type: six integers found in the OPUS file directory that describe the block type.
@@ -78,8 +78,8 @@ class BlockType(tuple):
 class FileBlock:
     '''Generic OPUS file block.
 
-    This class initializes with the most basic file block info from the file directory: type, size, and start location
-    as well as the raw bytes from the file (which can subsequently be parsed).
+    This class initializes from the block info stored in the file directory (type, size, and start location) as well as
+    the raw bytes from the file (which can subsequently be parsed).
 
     Args:
         filebytes: raw bytes of the file

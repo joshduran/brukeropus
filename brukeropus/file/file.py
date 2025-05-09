@@ -94,6 +94,7 @@ class OPUSFile:
         self.data_keys = []
         self.series_keys = []
         self.all_data_keys = []
+        self.reports = []
         self.unknown_blocks = []
         self.special_blocks = []
         self.unmatched_data_blocks = []
@@ -115,9 +116,13 @@ class OPUSFile:
 
     def _init_directory(self):
         '''Moves the directory `FileBlock` into the directory attribute.'''
-        dir_block = [b for b in self.directory.blocks if b.is_directory()][0]
+        try:
+            dir_block = [b for b in self.directory.blocks if b.is_directory()][0]
+            self._remove_blocks([dir_block], 'directory')
+        except:
+            dir_block = None
         self.directory.block = dir_block
-        self._remove_blocks([dir_block], 'directory')
+        
 
     def _init_params(self, attr: str, is_param: str):
         '''Sets `Parameter` attributes (`self.params`, `self.rf_params`) from directory blocks and removes them from
@@ -128,7 +133,6 @@ class OPUSFile:
     
     def _init_reports(self):
         '''Adds all reports (`Report`) from the file to the `.reports` attribute.'''
-        self.reports = []
         report_blocks = [b for b in self.directory.blocks if b.is_report()]
         for b in report_blocks:
             try:
