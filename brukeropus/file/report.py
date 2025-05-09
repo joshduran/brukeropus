@@ -32,7 +32,7 @@ class Report:
         if type(item) is int and hasattr(self, 'sub'):
             return self.sub[item]
         elif type(item) is str and item.lower() in [k.lower() for k in self.properties.keys()]:
-            key = [k for k in self.properties.keys() if k.lower() == item][0]
+            key = [k for k in self.properties.keys() if k.lower() == item.lower()][0]
             return self.properties[key]
         else:
             raise KeyError(str(item) + ''' not a valid key. Key can be integer (to reference subreport) or a key from
@@ -107,7 +107,7 @@ class ReportTable:
         if type(item) is int:
             return self.values[item]
         elif type(item) is str and item.lower() in [h.lower() for h in self.header]:
-            idx = [i for i, h in enumerate(self.header) if h.lower() == item][0]
+            idx = [i for i, h in enumerate(self.header) if h.lower() == item.lower()][0]
             return self.values[idx]
         else:
             raise KeyError(str(item) + ' not a valid key. For a list of valid keys, use: .headers')
