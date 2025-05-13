@@ -82,6 +82,10 @@ class OPUSFile:
     def __getattr__(self, name):
         if name == 'blocks':
             return self.directory.blocks
+        elif name in self.params.keys():
+            return self.params[name]
+        elif name in self.rf_params.keys():
+            return self.rf_params[name]
 
     def __init__(self, filepath):
         '''Note: a list of `FileBlock` is initially loaded and parsed using the `FileDirectory` class.  This list is
