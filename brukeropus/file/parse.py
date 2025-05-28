@@ -129,7 +129,7 @@ def parse_directory(blockbytes: bytes) -> list:
                 (  
                     **block_type (tuple):** six-integer tuple which specifies the block type (see: `get_block_type`)  
                     **size (int):** size (number of bytes) of the block  
-                    **start (int):** pointer to start location of the block (number of bytes)  
+                    **start (int):** pointer to start location of the block (number of bytes)
                 )
     '''
     loc = 0
