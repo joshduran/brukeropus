@@ -1,6 +1,6 @@
 import os, struct, errno
 import numpy as np
-from brukeropus.file.constants import STRUCT_3D_INFO_BLOCK
+from brukeropus.file.constants import STRUCT_3D_INFO_BLOCK, SUBREPORT_TYPE_FMT
 
 
 __docformat__ = "google"
@@ -55,6 +55,34 @@ def get_block_type(type_int: int) -> tuple:
         int(type_bit_str[-22:-19], 2)
     )
     return block_type
+
+
+def decode_str(size: int, blockbytes: bytes, offset: int) -> str:
+    '''Decode string that is packed as bytes in `blockbytes` starting from `offset`.
+
+    Strings are frequently stored in OPUS files with a size designation that is larger than the actual string. The end
+    of the string is designated by a terminator byte: b'\x00'. This function unpacks the string using the size
+    designator, truncates at the terminator byte if found, and decodes as "latin-1"
+
+    Args:
+        size: size (number of bytes) of the string
+        blockbytes: raw bytes of an OPUS file block
+        offset: offset location where string begins in blockbytes
+
+    Returns:
+        string: decoded string
+    '''
+    fmt = '<' + str(size) + 's'
+    try:
+        val = struct.unpack_from(fmt, blockbytes, offset)[0]
+        x00_pos = val.find(b'\x00')
+        if x00_pos != -1:
+            val = val[:x00_pos].decode('latin-1')
+        else:
+            val = val.decode('latin-1')
+    except Exception as e:
+        val = 'Failed to decode: ' + str(e)
+    return val
 
 
 def parse_header(filebytes: bytes) -> tuple:
@@ -141,21 +169,11 @@ def parse_params(blockbytes: bytes) -> dict:
         dtype_code, val_size = struct.unpack_from('<2h', blockbytes[loc + 4:loc + 8])
         val_size = val_size * 2
         if dtype_code == 0:
-            fmt_str = '<i'
+            val = struct.unpack_from('<i', blockbytes, loc + 8)[0]
         elif dtype_code == 1:
-            fmt_str = '<d'
+            val = struct.unpack_from('<d', blockbytes, loc + 8)[0]
         else:
-            fmt_str = '<'+str(val_size)+'s'
-        try:
-            val = struct.unpack_from(fmt_str, blockbytes, loc + 8)[0]
-            if 's' in fmt_str:
-                x00_pos = val.find(b'\x00')
-                if x00_pos != -1:
-                    val = val[:x00_pos].decode('latin-1')
-                else:
-                    val = val.decode('latin-1')
-        except Exception as e:
-            val = 'Failed to decode: ' + str(e)
+            val = decode_str(val_size, blockbytes, loc + 8)
         params[key.lower()] = val
         loc = loc + val_size + 8
     return params
@@ -281,3 +299,104 @@ def parse_text(block_bytes: bytes) -> str:
                 except Exception as e:
                     strings.append('<Decode Exception>: ' + str(e))
     return '\n'.join(strings)
+
+
+def parse_subreport(subreport_bytes: bytes) -> dict:
+    '''Parses the bytes of a subreport and returns the extracted data as a dictionary
+
+    Subreports are contained within a report block (e.g. Multi-Evaluation Test Report). A report can contain multiple
+    subreports, and they generally follow a table format. This sub-block is organized with a mini parameter block
+    followed by packed data. The mini parameter block contains information about how to read the packed data:
+        nco: number of columns
+        nln: number of rows
+        siz: size of mini parameter block (number of bytes)
+        src: size in bytes of entire row of data (offset for extracting column data from row 2, 3 ...)
+        f00, f01 ... fxx: start position of data in column 0, 1 ... xx (relative to end of mini param block)
+        t00, t01 ... txx: integer representing type of data (e.g. int32, float32, float64, str, etc.)
+        s00, s01 ... sxx: column header label
+        p00, p01 ... pxx: formatting string for numbers in column 0, 1 ... xx (not included for every column)
+
+    Args:
+        subreport_bytes: raw bytes of the subreport. Needs to start precisely where subreport begins, but can include
+        data beyond the end of the subreport (i.e. end of subreport does not need to be determined a priori).
+
+    Returns:
+        **subreport (dict):** `dict` containing subreport data and extraction/formatting parameters  
+            {  
+                **info:** `dict` of parameters extracted directly from subreport that describes how to read the data
+                    table and provides some basic metadata about the table (e.g. column header labels).
+                **data:** `list` of lists of data (table format) contained in the subreport
+            }
+    '''
+    info = parse_params(subreport_bytes)
+    data = []
+    for row in range(info['nln']):
+        data.append([])
+        for col in range(info['nco']):
+            offset = info['siz'] + row * info['src'] + info['f' + f'{col:02}']
+            type_int = info['t' + f'{col:02}']
+            if col < info['nco'] - 1:
+                size = min([type_int - 1000, info['f' + f'{col + 1:02}'] - info['f' + f'{col:02}']])
+            else:
+                size = info['src'] - info['f' + f'{col:02}']
+            if type_int > 1000:
+                val = decode_str(size, subreport_bytes, offset)
+            elif type_int in SUBREPORT_TYPE_FMT.keys():
+                fmt = SUBREPORT_TYPE_FMT[type_int]
+                val = struct.unpack_from(fmt, subreport_bytes, offset)[0]
+            else:
+                val = subreport_bytes[offset:offset + size]
+            data[row].append(val)
+    return {'info': info, 'data': data}
+
+
+def parse_report(blockbytes: bytes) -> dict:
+    '''Parses the report block of an OPUS file, such as Multi-Evaluation test reports, returning the report as a dict.
+
+    Report blocks are formatted in a very general way, potentially enabling a variety of different report structures.
+    This algorithm was developed using several OPUS files with a variety of different Multi-Evaluation Test Reports.
+    It is possible that other classes of test reports could be generated by OPUS that might change the structure, but
+    the overal organization and decoding methods should be similar.  In particular, the report block structure might
+    support multiple reports, but no such file has been available for testing to date.  This algorithm will extract a
+    single report and all the associated subreports.
+
+    Report blocks start with a mini parameter block that begins after the 12th byte.  It contains the following:
+        tit: Title of the report
+        f00: Starting position of the report summary data
+        Known unused parameters: bid, nrp, siz, e00, z00
+    This is followed by the report summary. For a multi-evaluation test report, this is a pair of tables summarizing the
+    methods applied to the spectrum.  It also specifies the number of subreports that follow, and the starting position
+    and title of each subreport. Some of the keys in this parameter set are described in the `parse_subreport` method.
+    Other parameters in the report summary include:
+        sub: Number of subreports
+        h00, h01 ... hxx: header labels of first summary table
+        v00, v01 ... vxx: corresponding values of first summary table
+        g00, g01 ... gxx: starting positions of each subreport relative to the start of this report summary
+        u00, u02 ... uxx: titles of each subreport
+    It should be noted that the only class of reports used for testing this algorithm were a variety of multi-evaluation
+    test reports. It is possible there are other similar report blocks OPUS writes that follow a similar structure but
+    could vary in some way that is incompatible with some of the assumptions made by this algorithm.
+
+    Args:
+        blockbytes: raw bytes of an OPUS file report block
+
+    Returns:
+        **report (dict):** `dict` containing report and subreport data 
+            {
+                **header:** `dict` of parameters from first mini param block
+                **info:** `dict` of parameters extracted from second mini param block
+                **data:** `list` of data that comprises second summary table
+                **subreports:** `list` of subreport `dict`s beneath the main report.
+            }
+    '''
+    header_ints = struct.unpack('<3i', blockbytes[:12])
+    header_info = parse_params(blockbytes[12:])
+    header_info['ints'] = header_ints
+    report_info = parse_subreport(blockbytes[header_info['f00']:])
+    report = {'header': header_info, 'info': report_info['info'], 'data': report_info['data']}
+    subreports = []
+    for idx in range(report_info['info']['sub']):
+        offset = header_info['f00'] + report_info['info']['g' + f'{idx:02}']
+        subreports.append(parse_subreport(blockbytes[offset:]))
+    report['subreports'] = subreports
+    return report

@@ -1,4 +1,3 @@
-import json, importlib.resources
 import numpy as np
 
 
@@ -71,7 +70,7 @@ CODE_5 = {0: '',
           2: '(Series)',
           3: 'Molecular Structure',
           4: 'Macro',
-          5: 'File Log',
+          5: 'History/Report',
           }
 
 # care must be taken when using 3-letter keys to avoid cross contaminating with 3-char parameter keys
@@ -133,6 +132,16 @@ STRUCT_3D_INFO_BLOCK = [
     {'key': 'srt', 'fmt': 'd', 'dtype': np.float64},
     {'key': 'ert', 'fmt': 'd', 'dtype': np.float64},
 ]
+
+
+SUBREPORT_TYPE_FMT = {
+    3: '<i',
+    4: '<i',
+    5: '<f',
+    6: '<d',
+    7: '<i',
+    # > 1000: '<s' where length = type int - 1000
+}
 
 
 Y_LABELS = {

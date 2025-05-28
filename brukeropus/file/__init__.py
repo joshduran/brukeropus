@@ -383,9 +383,15 @@ For full API documentation, see:
 `Data`: `brukeropus.file.file.Data`  
 `DataSeries`: `brukeropus.file.file.DataSeries`
 '''
-from brukeropus.file.file import *
+
 from brukeropus.file.block import *
-from brukeropus.file.parse import *
-from brukeropus.file.labels import *
-from brukeropus.file.utils import *
 from brukeropus.file.constants import *
+from brukeropus.file.data import *
+from brukeropus.file.directory import *
+from brukeropus.file.file import *
+from brukeropus.file.labels import *
+from brukeropus.file.params import *
+from brukeropus.file.parse import *
+from brukeropus.file.report import *
+from brukeropus.file.utils import *
+

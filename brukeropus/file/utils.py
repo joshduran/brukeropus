@@ -1,8 +1,7 @@
-import textwrap, re, os
-from brukeropus.file.constants import TYPE_CODE_LABELS, PARAM_LABELS, CODE_3_ABR
-from brukeropus.file.block import FileBlock
+import re, os
+from brukeropus.file.block import FileBlock, BlockType
 from brukeropus.file.parse import read_opus_file_bytes, parse_header, parse_directory
-from brukeropus.file.labels import get_block_type_label, get_param_label
+from brukeropus.file.labels import get_param_label
 
 
 __all__ = ['find_opus_files', 'parse_file_and_print']
@@ -48,7 +47,7 @@ def parse_file_and_print(filepath, width=120):
     filebytes = read_opus_file_bytes(filepath)
     if filebytes is not None:
         width = 120
-        info_col_widths = (28, 15, 16, 61)
+        info_col_widths = (19, 15, 16, 61)
         info_col_labels = ('Block Type', 'Size (bytes)', 'Start (bytes)', 'Friendly Name')
         _print_block_header(filepath, width)
         version, dir_start, max_blocks, num_blocks = parse_header(filebytes)
@@ -63,7 +62,8 @@ def parse_file_and_print(filepath, width=120):
         _print_cols(info_col_labels, info_col_widths)
         for b_type, size, start in parse_directory(filebytes[dir_start:dir_start + num_blocks * 3 * 4]):
             try:
-                vals = [b_type, size, start, get_block_type_label(b_type)]
+                b_type = BlockType(b_type)
+                vals = [b_type.get_aligned_tuple_str(), size, start, b_type.label]
                 _print_cols(vals, info_col_widths)
                 block_infos.append((b_type, size, start))
             except Exception as e:
@@ -98,7 +98,7 @@ def _print_block(block: FileBlock, width: int):
     param_col_widths = (key_width, key_label_width, width - key_width - key_label_width)
     param_col_labels = ('Key', 'Friendly Name', 'Value')
     if not block.is_directory():
-        _print_block_header(get_block_type_label(block.type), width)
+        _print_block_header(block.type.label, width)
         if block.is_param():
             _print_cols(param_col_labels, param_col_widths)
             if type(block.data) is dict:

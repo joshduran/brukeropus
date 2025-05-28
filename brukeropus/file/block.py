@@ -1,20 +1,85 @@
-from brukeropus.file.labels import get_block_type_label, get_data_key
-from brukeropus.file.parse import (parse_header,
-                                   parse_directory,
+from brukeropus.file.labels import get_data_key
+from brukeropus.file.constants import TYPE_CODE_LABELS
+from brukeropus.file.parse import (parse_directory,
                                    parse_params,
                                    parse_data,
                                    parse_data_series,
-                                   parse_text)
+                                   parse_text,
+                                   parse_report)
 
 
 __docformat__ = "google"
 
 
+class BlockType(tuple):
+    '''Six-integer tuple representing the category (type) of block within an OPUS file.
+
+    Each block in an OPUS file is categorized with six integers, for example (3, 1, 1, 2, 0, 0). This class stores the
+    integers as a `tuple`, but extends the `tuple` class to provide a few useful functions/attributes.
+
+    Args:
+        block_type: six integers found in the OPUS file directory that describe the block type.
+
+    Attributes:
+        label: human-readable label that describes the block category
+    '''
+
+    def get_label(self):
+        '''Converts a six-integer tuple block type into a human readable label.
+
+        This package includes the majority of type codes that OPUS uses, but in the event a type code label is not known,
+        this function will return: "Unknown 0 4" where the first number is the position index, and the second is the
+        unknown value integer.
+
+        Args:
+            block_type: six integer tuple found in the OPUS file directory that describes the block type
+
+        Returns:
+            label (str): human-readable string label
+        '''
+        labels = [self._get_sub_type_label(idx) for idx in range(len(self)) if self[idx] > 0
+                  and self._get_sub_type_label(idx) != '']
+        return ' '.join(labels)
+
+    def _get_sub_type_label(self, pos_idx: int):
+        '''Returns the sub-type label of a file block given the position index and value of the type code.
+
+        Args:
+            pos_idx: positional index of the type code (0 - 5)
+
+        Returns:
+            label (str): human-readable string label that describes the type code at that index.
+        '''
+        try:
+            return TYPE_CODE_LABELS[pos_idx][self[pos_idx]]
+        except KeyError:
+            return 'Unknown ' + str(pos_idx) + ' ' + str(self[pos_idx])
+
+    def get_aligned_tuple_str(self, pad=1):
+        return f'{self[0]}' + f'{self[1]:2}' + f'{self[2]:3}' + f'{self[3]:3}' + f'{self[4]:2}' + f'{self[5]:2}'
+
+    def __repr__(self):
+        return 'BlockType((' + ', '.join([str(i) for i in self]) + '))'
+
+    def __str__(self):
+        return self.get_aligned_tuple_str() + '   ' + self.get_label()
+
+    def __new__(cls, iterable):
+        instance = super().__new__(cls, iterable)
+        if len(instance) != 6 or any(type(i) != int for i in instance):
+            raise ValueError('BlockType input must be a 6-integer iterable, but a value of:' + str(iterable) + ' was given')
+        return instance
+
+    def __init__(self, iterable):
+        super().__init__()
+        self.label = self.get_label()
+
+
 class FileBlock:
     '''Generic OPUS file block.
 
-    This class initializes with the most basic file block info from the file directory: type, size, and start location
-    as well as the raw bytes from the file (which can subsequently be parsed).
+    This class initializes from the block info stored in the file directory (type, size, and start location) as well as
+    the raw bytes from the file (which can subsequently be parsed).
 
     Args:
         filebytes: raw bytes of the file
@@ -31,15 +96,16 @@ class FileBlock:
         parser: name of parsing function if parsing was successful
     '''
 
-    __slots__ = ('type', 'size', 'start', 'bytes', 'data', 'parser', 'keys')
+    __slots__ = ('type', 'size', 'start', 'bytes', 'data', 'parser', 'parse_error', 'keys')
 
     def __init__(self, filebytes: bytes, block_type: tuple, size: int, start: int):
         self.bytes = filebytes[start: start + size]
-        self.type = block_type
+        self.type = BlockType(block_type)
         self.size = size
         self.start = start
         self.data = None
         self.parser = None
+        self.parse_error = None
 
     def __str__(self):
         label = self.get_label()
@@ -52,7 +118,7 @@ class FileBlock:
                 self.keys = list(self.data.keys())
             self._clear_parsed_bytes(parser=parser)
         except Exception as e:
-            self.data = 'Error parsing: ' + str(e)
+            self.parse_error = 'Error parsing (' + parser.__name__ + '): ' + str(e)
 
     def _clear_parsed_bytes(self, parser):
         '''Clear raw bytes that have been parsed (and log the parser for reference)'''
@@ -85,6 +151,10 @@ class FileBlock:
         '''Returns True if `FileBlock` is the file log (aka 'history') block'''
         return self.type == (0, 0, 0, 0, 0, 5)
 
+    def is_report(self):
+        '''Returns True if `FileBlock` is a test report'''
+        return self.type in [(0, 0, 0, 0, 0, 3), (0, 0, 0, 0, 0, 4)] or (self.type[2] == 0 and self.type[3] not in [0, 13] and self.type[5] == 5)
+
     def is_data(self):
         '''Returns True if `FileBlock` is a 1D data block (not a data series)'''
         return self.type[2] == 0 and self.type[3] not in [0, 13] and self.type[5] not in [2, 5]
@@ -95,7 +165,7 @@ class FileBlock:
 
     def get_label(self):
         '''Returns a friendly string label that describes the block type'''
-        return get_block_type_label(self.type)
+        return self.type.label
 
     def get_data_key(self):
         '''If block is a data block, this function will return a shorthand key to reference that data.
@@ -115,6 +185,8 @@ class FileBlock:
             return parse_text
         elif self.is_param():
             return parse_params
+        elif self.is_report():
+            return parse_report
         elif self.is_data_series():
             return parse_data_series
         elif self.is_data():
@@ -128,34 +200,6 @@ class FileBlock:
         parser = self.get_parser()
         if parser is not None:
             self._try_parser(parser)
-
-
-class FileDirectory:
-    '''Contains type and pointer information for all blocks of data in an OPUS file.
-
-    `FileDirectory` information is decoded from the raw file bytes of an OPUS file. First the header is read which
-    provides the start location of the directory block, number of blocks in file, and maximum number of blocks the file
-    supports. Then it decodes the block pointer information from each entry of the file's directory block to create a
-    `FileBlock` instance, initiates the block parsing, and adds the parsed block to the `blocks` attribute.
-
-    Args:
-        filebytes: raw bytes from OPUS file. see: `brukeropus.file.parser.read_opus_file_bytes`
-
-    Attributes:
-        start: pointer to start location of the directory block
-        max_blocks: maximum number of blocks supported by file
-        num_blocks: total number of blocks in the file
-        blocks: list of `FileBlock` from the file. The class parses these blocks upon initilization of the class.
-    '''
-    def __init__(self, filebytes: bytes):
-        self.version, self.start, self.max_blocks, self.num_blocks = parse_header(filebytes)
-        size = self.max_blocks * 3 * 4
-        blocks = []
-        for block_type, size, start in parse_directory(filebytes[self.start: self.start + size]):
-            block = FileBlock(filebytes=filebytes, block_type=block_type, size=size, start=start)
-            block.parse()
-            blocks.append(block)
-        self.blocks = blocks
 
 
 def is_data_status_type_match(data_block: FileBlock, data_status_block: FileBlock) -> bool:
@@ -174,7 +218,7 @@ def is_data_status_val_match(data_block: FileBlock, data_status_block: FileBlock
     When multiple spectra of the same type exist in a file, this is used to distinguish if the data and data status
     blocks are a good match.  This can reduce the number of duplicate matches, but is not generally sufficient to
     fully eliminate duplicate matches.
-    
+
     See test file: `Test Vit C_Glass.0000_comp.0`'''
     if data_block.is_data():
         try:
@@ -194,7 +238,7 @@ def is_valid_match(data_block: FileBlock, data_status_block: FileBlock) -> bool:
     '''Checks that number of points in data status are less than or equal to length of parsed data block.
 
     This does not apply to data series. While rare, it is occasionally necessary to remove these bad matches.
-    
+
     See test file: `unreadable.0000`'''
     if data_block.is_data() and len(data_block.data) < data_status_block.data['npt']:
         return False
@@ -241,8 +285,8 @@ def pair_data_and_status_blocks(blocks: list) -> list:
         reduced_matches.append((d, [b for b in matches if b.start not in single_starts]))
     single_matches = single_matches + [(m[0], m[1][0]) for m in reduced_matches if len(m[1]) == 1]
     multi_matches = [match for match in reduced_matches if len(match[1]) > 1]
-    
+
     single_matches = [match for match in single_matches if is_valid_match(match[0], match[1])] # remove invalid
-    
+
     single_matches.sort(key=lambda pairs: pairs[0].start, reverse=True) # last spec seems to be OPUS preference
     return single_matches

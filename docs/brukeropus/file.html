@@ -38,9 +38,13 @@
             <ul>
                     <li><a href="file/block.html">block</a></li>
                     <li><a href="file/constants.html">constants</a></li>
+                    <li><a href="file/data.html">data</a></li>
+                    <li><a href="file/directory.html">directory</a></li>
                     <li><a href="file/file.html">file</a></li>
                     <li><a href="file/labels.html">labels</a></li>
+                    <li><a href="file/params.html">params</a></li>
                     <li><a href="file/parse.html">parse</a></li>
+                    <li><a href="file/report.html">report</a></li>
                     <li><a href="file/utils.html">utils</a></li>
             </ul>
 
@@ -481,8 +485,8 @@ class, or through the <code>Data.params</code> attribute:</p>
 
 <p>For full API documentation, see:<br />
 <code>OPUSFile</code>: <code><a href="file/file.html#OPUSFile">brukeropus.file.file.OPUSFile</a></code><br />
-<code>Data</code>: <code><a href="file/file.html#Data">brukeropus.file.file.Data</a></code><br />
-<code>DataSeries</code>: <code><a href="file/file.html#DataSeries">brukeropus.file.file.DataSeries</a></code></p>
+<code>Data</code>: <code>brukeropus.file.file.Data</code><br />
+<code>DataSeries</code>: <code>brukeropus.file.file.DataSeries</code></p>
 </div>
 
                         <input id="mod-file-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
@@ -874,12 +878,17 @@ class, or through the <code>Data.params</code> attribute:</p>
 </span><span id="L-383"><a href="#L-383"><span class="linenos">383</span></a><span class="sd">`Data`: `brukeropus.file.file.Data`  </span>
 </span><span id="L-384"><a href="#L-384"><span class="linenos">384</span></a><span class="sd">`DataSeries`: `brukeropus.file.file.DataSeries`</span>
 </span><span id="L-385"><a href="#L-385"><span class="linenos">385</span></a><span class="sd">&#39;&#39;&#39;</span>
-</span><span id="L-386"><a href="#L-386"><span class="linenos">386</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">brukeropus.file.file</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+</span><span id="L-386"><a href="#L-386"><span class="linenos">386</span></a>
 </span><span id="L-387"><a href="#L-387"><span class="linenos">387</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">brukeropus.file.block</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
-</span><span id="L-388"><a href="#L-388"><span class="linenos">388</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">brukeropus.file.parse</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
-</span><span id="L-389"><a href="#L-389"><span class="linenos">389</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">brukeropus.file.labels</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
-</span><span id="L-390"><a href="#L-390"><span class="linenos">390</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">brukeropus.file.utils</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
-</span><span id="L-391"><a href="#L-391"><span class="linenos">391</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">brukeropus.file.constants</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+</span><span id="L-388"><a href="#L-388"><span class="linenos">388</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">brukeropus.file.constants</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+</span><span id="L-389"><a href="#L-389"><span class="linenos">389</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">brukeropus.file.data</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+</span><span id="L-390"><a href="#L-390"><span class="linenos">390</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">brukeropus.file.directory</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+</span><span id="L-391"><a href="#L-391"><span class="linenos">391</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">brukeropus.file.file</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+</span><span id="L-392"><a href="#L-392"><span class="linenos">392</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">brukeropus.file.labels</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+</span><span id="L-393"><a href="#L-393"><span class="linenos">393</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">brukeropus.file.params</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+</span><span id="L-394"><a href="#L-394"><span class="linenos">394</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">brukeropus.file.parse</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+</span><span id="L-395"><a href="#L-395"><span class="linenos">395</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">brukeropus.file.report</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+</span><span id="L-396"><a href="#L-396"><span class="linenos">396</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">brukeropus.file.utils</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
 </span></pre></div>
 
 
