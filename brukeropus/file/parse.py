@@ -272,7 +272,7 @@ def parse_data_series(blockbytes: bytes, dpf: int = 1) -> dict:
     return data
 
 
-def parse_text(block_bytes: bytes) -> str:
+def parse_text(block_bytes: bytes, encoding='utf-8', backup_encoding='latin-1') -> str:
     '''Parses and OPUS file block as text (e.g. history or file-log block).
 
     The history (aka file-log) block of an OPUS file contains some information about how the file was generated and
@@ -282,6 +282,8 @@ def parse_text(block_bytes: bytes) -> str:
 
     Args:
         blockbytes: raw bytes of the text block (e.g. history or file-log)
+        encoding: string represting text encoding type. Can be set to "utf-16" for chinese character support
+        backup_encoding: if default encoding fails, this encoding string will be attempted.
 
     Returns:
         text: string of text contained in the file block.
@@ -292,10 +294,10 @@ def parse_text(block_bytes: bytes) -> str:
     for entry in byte_strings:
         if entry != b'':
             try:
-                strings.append(entry.decode('latin-1'))
+                strings.append(entry.decode(encoding))
             except Exception:
                 try:
-                    strings.append(entry.decode('utf-8'))
+                    strings.append(entry.decode(backup_encoding))
                 except Exception as e:
                     strings.append('<Decode Exception>: ' + str(e))
     return '\n'.join(strings)
