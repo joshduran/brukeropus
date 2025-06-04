@@ -100,7 +100,6 @@ class OPUSFile:
         self.all_data_keys = []
         self.reports = []
         self.unknown_blocks = []
-        self.special_blocks = []
         self.unmatched_data_blocks = []
         self.unmatched_data_status_blocks = []
         filebytes = read_opus_file_bytes(filepath)
@@ -110,9 +109,9 @@ class OPUSFile:
             self._init_directory()
             self._init_params('rf_params', 'is_rf_param')
             self._init_params('params', 'is_sm_param')
+            self._init_data()
             self._init_reports()
             self._init_history()
-            self._init_data()
             self.unknown_blocks = [block for block in self.directory.blocks]
             self._remove_blocks(self.unknown_blocks, 'unknown_blocks')
             self.parse_error_blocks = [block for block in self.directory.parse_error_blocks]
@@ -150,7 +149,6 @@ class OPUSFile:
         '''Sets the history attribute to the parsed history (file_log) data and removes the block.'''
         hist_blocks = [b for b in self.directory.blocks if b.is_file_log()]
         if len(hist_blocks) > 0:
-            self.special_blocks = self.special_blocks + hist_blocks
             self.history = '\n\n'.join([b.data for b in hist_blocks])
         self._remove_blocks(hist_blocks, 'history')
 

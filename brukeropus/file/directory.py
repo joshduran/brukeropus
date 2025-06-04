@@ -38,5 +38,40 @@ class FileDirectory:
                 self.parse_error_blocks.append(block)
             else:
                 self.blocks.append(block)
+    
+    def __str__(self):
+        if len(self.toc) == 0:
+            return 'Blank OPUS file directory'
+        else:
+            label_width = max([len(e['type'].get_label()) for e in self.toc])
+            type_width = 13
+            start_width = 7
+            size_width = 6
+            attr_width = max([len(e['attr']) for e in self.toc])
+            info = '    '.join(
+                (f'Version: {self.version}',
+                 f'Num Blocks: {len(self.toc)}/{self.num_blocks}[{self.max_blocks}]',
+                 f'Start: {self.start}'))
+            space = '   '
+            header = space.join(
+                (f'{"File Block Name":<{label_width}}',
+                 f'{"Type Code":^{type_width}}',
+                 f'{"Start":>{start_width}}',
+                 f'{"Size":>{size_width}}',
+                 f'{"Attribute":<{attr_width}}'))
+            lines = [f'{"  Directory  ":=^{len(header)}}',
+                     f'{info:^{len(header)}}',
+                     '—'*len(header),
+                     header,
+                     '—'*len(header)]
+            for entry in self.toc:
+                string = space.join(
+                    (f'{entry["type"].get_label():<{label_width}}',
+                     f'{entry["type"].get_aligned_tuple_str():^{type_width}}',
+                     f'{entry["start"]:>{start_width}}',
+                     f'{entry["size"]:>{size_width}}',
+                     f'{entry["attr"]:<{attr_width}}'))
+                lines.append(string)
+            return '\n'.join(lines)
 
 

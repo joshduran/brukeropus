@@ -39,7 +39,10 @@ class BlockType(tuple):
         '''
         labels = [self._get_sub_type_label(idx) for idx in range(len(self)) if self[idx] > 0
                   and self._get_sub_type_label(idx) != '']
-        return ' '.join(labels)
+        if len(labels) > 0:
+            return ' '.join(labels)
+        else:
+            return 'Undefined'
 
     def _get_sub_type_label(self, pos_idx: int):
         '''Returns the sub-type label of a file block given the position index and value of the type code.
