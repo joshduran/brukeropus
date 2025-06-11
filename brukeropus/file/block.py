@@ -89,23 +89,25 @@ class FileBlock:
         block_type: six integer tuple that describes the type of data in the file block
         size: size of block in number of bytes
         start: pointer to start location of the block within the file
+        debug: whether to read the block in debug mode (default: False)
 
     Attributes:
         type: six integer tuple that describes the type of data in the file block
         size: size of block in number of bytes
         start: pointer to start location of the block within the file
-        bytes: raw bytes of file block (set to zero bytes if successfully parsed)
+        bytes: raw bytes of file block (set to zero bytes if successfully parsed unless in debug mode)
         data: parsed data if successful. Could be: `list`, `str`, `np.ndarray` or `dict` depending on the block type.
         parser: name of parsing function if parsing was successful
     '''
 
-    __slots__ = ('type', 'size', 'start', 'bytes', 'data', 'parser', 'parse_error', 'keys')
+    __slots__ = ('type', 'size', 'start', 'bytes', 'data', 'parser', 'parse_error', 'keys', 'debug')
 
-    def __init__(self, filebytes: bytes, block_type: tuple, size: int, start: int):
+    def __init__(self, filebytes: bytes, block_type: tuple, size: int, start: int, debug=False):
         self.bytes = filebytes[start: start + size]
         self.type = BlockType(block_type)
         self.size = size
         self.start = start
+        self.debug = debug
         self.data = None
         self.parser = None
         self.parse_error = None
@@ -126,7 +128,8 @@ class FileBlock:
     def _clear_parsed_bytes(self, parser):
         '''Clear raw bytes that have been parsed (and log the parser for reference)'''
         self.parser = parser.__name__
-        self.bytes = b''
+        if not self.debug:
+            self.bytes = b''
 
     def is_data_status(self):
         '''Returns True if `FileBlock` is a data status parameter block'''
@@ -165,6 +168,11 @@ class FileBlock:
     def is_data_series(self):
         '''Returns True if `FileBlock` is a data series block (i.e. 3D data)'''
         return self.type[2] == 0 and self.type[5] == 2
+    
+    def is_compact_data(self):
+        '''Returns True if `FileBlock` is a compact 1D data block. These data blocks have metadata preceeding the data
+        array (currently ignored).'''
+        return self.is_data() and self.type[5] == 4
 
     def get_label(self):
         '''Returns a friendly string label that describes the block type'''

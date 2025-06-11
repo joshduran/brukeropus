@@ -104,6 +104,8 @@ def get_data_key(block_type: tuple):
             key = 'rf' + key
         elif block_type[1] > 3:
             key = '_' + str(block_type[1]) + key
+    if block_type[5] == 4:
+        key = key + '_c'
     return key
 
 

@@ -49,7 +49,10 @@ class Data:
     def __init__(self, data_block: FileBlock, data_status_block: FileBlock, key: str, vel: float):
         self.key = key
         self.params = Parameters(data_status_block)
-        y = data_block.data
+        if data_block.is_compact_data():
+            y = data_block.data[-self.params.npt:]
+        else:
+            y = data_block.data
         self.y = self.params.csf * y[:self.params.npt]    # Trim extra values on some spectra
         self.x = np.linspace(self.params.fxv, self.params.lxv, self.params.npt)
         self.label = data_block.get_label()

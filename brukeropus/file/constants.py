@@ -69,7 +69,7 @@ CODE_5 = {0: '',
           1: 'Compound Information',
           2: '(Series)',
           3: 'Molecular Structure',
-          4: 'Compact',
+          4: '(Compact)',
           5: 'History/Report',
           }
 

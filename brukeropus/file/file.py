@@ -25,6 +25,7 @@ class OPUSFile:
     Args:
         filepath: full path to the OPUS file to be parsed. Can be a string or Path object and is required to initilize
             an `OPUSFile` object.
+        debug: whether to read the file in debug mode (default: False)
 
     Attributes:
         is_opus: True if filepath points to an OPUS file, False otherwise. Also returned for dunder `__bool__()`
@@ -87,7 +88,7 @@ class OPUSFile:
         elif name.lower() in self.rf_params.keys():
             return getattr(self.rf_params, name)
 
-    def __init__(self, filepath):
+    def __init__(self, filepath, debug: bool = False):
         '''Note: a list of `FileBlock` is initially loaded and parsed using the `FileDirectory` class.  This list is
         located in `OPUSFile.directory.blocks`. After parsing all the file blocks (performed by the `FileBlock` class),
         data from those blocks are saved to various attributes within the `OPUSFile` class.  Subsequently, the block is
@@ -105,7 +106,7 @@ class OPUSFile:
         filebytes = read_opus_file_bytes(filepath)
         if filebytes:
             self.is_opus = True
-            self.directory = FileDirectory(filebytes)
+            self.directory = FileDirectory(filebytes, debug=debug)
             self._init_directory()
             self._init_params('rf_params', 'is_rf_param')
             self._init_params('params', 'is_sm_param')
@@ -240,7 +241,7 @@ class OPUSFile:
                     _print_cols((key.upper(), label, value), col_widths=col_widths)
 
 
-def read_opus(filepath: str) -> OPUSFile:
+def read_opus(filepath: str, debug: bool=False) -> OPUSFile:
     '''Return an `OPUSFile` object from an OPUS file filepath.
 
     The following produces identical results:
@@ -250,8 +251,9 @@ def read_opus(filepath: str) -> OPUSFile:
         ```
     Args:
         filepath (str or Path): filepath of an OPUS file (typically *.0)
+        debug: whether to read the file in debug mode (default: False)
 
     Returns:
         opus_file: an instance of the `OPUSFile` class containing all data/metadata extracted from the file.
     '''
-    return OPUSFile(filepath)
+    return OPUSFile(filepath, debug=debug)

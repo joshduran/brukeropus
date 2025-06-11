@@ -222,6 +222,25 @@ def parse_data(blockbytes: bytes, dpf: int = 1) -> np.ndarray:
     return np.frombuffer(blockbytes, dtype=dtype, count=count)
 
 
+def parse_data_compact(blockbytes: bytes, npt: int, dpf: int = 1) -> np.ndarray:
+    '''Parses the bytes in a data compact block and returns a `numpy` array.
+
+    Some data blocks are stored in the "Compact" block format that includes some metadata that preceeds the raw data. At
+    this time, the metadata is ignored, and the compact spectra is extracted from the last bytes of the block that fit
+    the known array size (specified with "npt" in corresponding data status block).
+
+    Args:
+        blockbytes: raw bytes of data block
+        npt: number of data points in the spectra (from data status block)
+        dpf: data-point-format integer stored in corresponding data status block.
+
+    Returns:
+        **y_array (numpy.ndarray):** `numpy` array of y values contained in the data block
+    '''
+    dtype, count = get_dpf_dtype_count(dpf=dpf, size=len(blockbytes))
+    return np.frombuffer(blockbytes, dtype=dtype, count=count)
+
+
 def parse_data_series(blockbytes: bytes, dpf: int = 1) -> dict:
     '''Parses the bytes in a 3D data block (series of spectra) and returns a data `dict` containing data and metadata.
 
