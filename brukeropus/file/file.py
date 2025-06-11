@@ -71,9 +71,30 @@ class OPUSFile:
     '''
 
     def __str__(self):
+        c1_width = 15
+        c2_width = 20
+        width = 120
+        c3_width = width - c1_width - c2_width
         if self.is_opus:
-            data_str = ', '.join(self.all_data_keys)
-            return 'OPUS File: ' + str(self.filepath) + '\n\tSpectra: ' + data_str
+            lines = ['=' * width,
+                     f'{"OPUS File: " + self.filepath:^{width}}']
+            lines.append(f'{"Attribute":<{c1_width}}{"Class type":<{c2_width}}' + "Description")
+            lines.append('-' * width)
+            for attr in ('params', 'rf_params'):
+                val = getattr(self, attr)
+                if val.keys():
+                    lines.append(f'{attr:<{c1_width}}{"Parameters":<{c2_width}}' + val.label[:c3_width])
+            for attr in self.data_keys:
+                val = getattr(self, attr)
+                lines.append(f'{attr:<{c1_width}}{"Data":<{c2_width}}' + val.label[:c3_width])
+            for attr in self.series_keys:
+                val = getattr(self, attr)
+                lines.append(f'{attr:<{c1_width}}{"DataSeries":<{c2_width}}' + val.label[:c3_width])
+            for i, report in enumerate(self.reports):
+                lines.append(f'{"report[" + str(i) + "]":<{c1_width}}{"Report":<{c2_width}}' + report.title)
+            if self.history:
+                lines.append(f'{"history":<{c1_width}}{"History":<{c2_width}}' + "History log of file")
+            return '\n'.join(lines)
         else:
             return 'Not an OPUS file: ' + str(self.filepath)
 
@@ -104,6 +125,8 @@ class OPUSFile:
         self.unmatched_data_blocks = []
         self.unmatched_data_status_blocks = []
         filebytes = read_opus_file_bytes(filepath)
+        if debug:
+            self.bytes = filebytes
         if filebytes:
             self.is_opus = True
             self.directory = FileDirectory(filebytes, debug=debug)

@@ -31,7 +31,7 @@ class Parameters:
             `dat` and `tim` are not present in the class, the `datetime` attribute will return `None`.
         blocks: list of `FileBlock` with data removed to save memory (keys saved for reference)
     '''
-    __slots__ = ('_params', 'datetime', 'blocks')
+    __slots__ = ('_params', 'datetime', 'blocks', 'label')
 
     def __init__(self, blocks: list):
         self._params = dict()
@@ -42,6 +42,7 @@ class Parameters:
             block.data = None
         self.blocks = blocks
         self._set_datetime()
+        self.label = self._get_label()
 
     def __getattr__(self, name):
         if name.lower() in self._params.keys():
@@ -52,6 +53,17 @@ class Parameters:
 
     def __getitem__(self, item):
         return self._params.__getitem__(item)
+    
+    def __str__(self):
+        return self._get_label()
+    
+    def _get_label(self):
+        labels = [block.type.label for block in self.blocks]
+        labels = [label.replace(' Parameters', '') for label in labels]
+        if all(('Reference ' in label for label in labels)):
+            labels = [label.replace('Reference ', '') for label in labels]
+            labels[-1] = labels[-1] + ' Reference'
+        return ', '.join(labels) + ' Parameters'
 
     def _set_datetime(self):
         if 'dat' in self.keys() and 'tim' in self.keys():
