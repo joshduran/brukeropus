@@ -79,7 +79,7 @@ class OPUSFile:
             lines = ['=' * width,
                      f'{"OPUS File: " + self.filepath:^{width}}']
             lines.append(f'{"Attribute":<{c1_width}}{"Class type":<{c2_width}}' + "Description")
-            lines.append('-' * width)
+            lines.append('—' * width)
             for attr in ('params', 'rf_params'):
                 val = getattr(self, attr)
                 if val.keys():
@@ -94,6 +94,7 @@ class OPUSFile:
                 lines.append(f'{"report[" + str(i) + "]":<{c1_width}}{"Report":<{c2_width}}' + report.title)
             if self.history:
                 lines.append(f'{"history":<{c1_width}}{"History":<{c2_width}}' + "History log of file")
+            lines.append('—' * width)
             return '\n'.join(lines)
         else:
             return 'Not an OPUS file: ' + str(self.filepath)
