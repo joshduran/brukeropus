@@ -32,7 +32,7 @@ class OPUSFile:
         filepath: full path pointing to the OPUS file
         name: base filename of the OPUS file
         params: class containing all general parameter metadata for the OPUS file. To save typing, the
-            three char parameters from params also become attributes of the `OPUSFile` class (e.g. bms, apt, src)  
+            three char parameters from params also become attributes of the `OPUSFile` class (e.g. bms, apt, src).
         rf_params: class containing all reference parameter metadata for the OPUS file 
         data_keys: list of all `Data` attributes stored in the file (e.g. sm, rf, t, a, r, igsm, igrf, phsm, etc.).
             This only includes 1D data (i.e. omits `DataSeries`).
@@ -79,7 +79,7 @@ class OPUSFile:
             lines = ['=' * width,
                      f'{"OPUS File: " + self.filepath:^{width}}']
             lines.append(f'{"Attribute":<{c1_width}}{"Class type":<{c2_width}}' + "Description")
-            lines.append('—' * width)
+            lines.append('―' * width)
             for attr in ('params', 'rf_params'):
                 val = getattr(self, attr)
                 if val.keys():
@@ -91,10 +91,10 @@ class OPUSFile:
                 val = getattr(self, attr)
                 lines.append(f'{attr:<{c1_width}}{"DataSeries":<{c2_width}}' + val.label[:c3_width])
             for i, report in enumerate(self.reports):
-                lines.append(f'{"report[" + str(i) + "]":<{c1_width}}{"Report":<{c2_width}}' + report.title)
+                lines.append(f'{"reports[" + str(i) + "]":<{c1_width}}{"Report":<{c2_width}}' + report.title)
             if self.history:
-                lines.append(f'{"history":<{c1_width}}{"History":<{c2_width}}' + "History log of file")
-            lines.append('—' * width)
+                lines.append(f'{"history":<{c1_width}}{"str":<{c2_width}}' + "History log of file")
+            lines.append('―' * width)
             return '\n'.join(lines)
         else:
             return 'Not an OPUS file: ' + str(self.filepath)

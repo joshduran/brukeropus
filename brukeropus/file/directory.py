@@ -62,9 +62,9 @@ class FileDirectory:
                  f'{"Attribute":<{attr_width}}'))
             lines = [f'{"  Directory  ":=^{len(header)}}',
                      f'{info:^{len(header)}}',
-                     '—'*len(header),
+                     '―'*len(header),
                      header,
-                     '—'*len(header)]
+                     '―'*len(header)]
             for entry in self.toc:
                 string = space.join(
                     (f'{entry["type"].get_label():<{label_width}}',

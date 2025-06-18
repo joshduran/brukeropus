@@ -60,10 +60,13 @@ class Parameters:
     def _get_label(self):
         labels = [block.type.label for block in self.blocks]
         labels = [label.replace(' Parameters', '') for label in labels]
-        if all(('Reference ' in label for label in labels)):
+        if len(labels) > 0 and all(('Reference ' in label for label in labels)):
             labels = [label.replace('Reference ', '') for label in labels]
             labels[-1] = labels[-1] + ' Reference'
-        return ', '.join(labels) + ' Parameters'
+        if len(labels) > 0:
+            return ', '.join(labels) + ' Parameters'
+        else:
+            return 'Parameters'
 
     def _set_datetime(self):
         if 'dat' in self.keys() and 'tim' in self.keys():
