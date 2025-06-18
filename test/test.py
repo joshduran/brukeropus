@@ -10,7 +10,7 @@ from brukeropus.file.constants import PARAM_LABELS
 
 def get_all_blocks(opusfile: OPUSFile) -> list:
     '''Returns a list of all `FileBlock` in an `OPUSFile` instance.'''
-    blocks = [opusfile.directory.block] + opusfile.special_blocks + opusfile.unknown_blocks + \
+    blocks = [opusfile.directory.block] + opusfile.parse_error_blocks + opusfile.unknown_blocks + \
         opusfile.unmatched_data_blocks + opusfile.unmatched_data_status_blocks + \
             [report.block for report in opusfile.reports]
     if hasattr(opusfile, 'params'):
@@ -19,6 +19,10 @@ def get_all_blocks(opusfile: OPUSFile) -> list:
         blocks = blocks + opusfile.rf_params.blocks
     for d in opusfile.iter_all_data():
         blocks = blocks + d.blocks
+    for report in opusfile.reports:
+        blocks.append(report.block)
+    if opusfile.history:
+        blocks = blocks + opusfile.history_blocks
     return blocks
 
 

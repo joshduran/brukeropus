@@ -68,10 +68,11 @@ class Report:
 
     def __str__(self, width=100, max_col_width=25, float_digits=3):
         lines = ['=' * width, f'{self.title:^{width}}', '_' * width]
-        key_width = max(len(key) for key in self.properties.keys())
-        for k, v in self.properties.items():
-            lines.append(f'{k:>{key_width}}' + ': ' + str(v))
-        lines.append('\n')
+        if hasattr(self, 'properties'):
+            key_width = max(len(key) for key in self.properties.keys())
+            for k, v in self.properties.items():
+                lines.append(f'{k:>{key_width}}' + ': ' + str(v))
+            lines.append('\n')
         table_str = self.table.__str__(width=width, max_width=max_col_width, float_digits=float_digits)
         lines = lines + table_str.splitlines()
         if hasattr(self, 'sub'):

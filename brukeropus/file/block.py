@@ -159,7 +159,7 @@ class FileBlock:
 
     def is_report(self):
         '''Returns True if `FileBlock` is a test report'''
-        return self.type in [(0, 0, 0, 0, 0, 3), (0, 0, 0, 0, 0, 4)] or (self.type[2] == 0 and self.type[3] not in [0, 13] and self.type[5] == 5)
+        return self.type in [(0, 0, 0, 0, 0, 2), (0, 0, 0, 0, 0, 3), (0, 0, 0, 0, 0, 4)] or (self.type[2] == 0 and self.type[3] not in [0, 13] and self.type[5] == 5)
 
     def is_data(self):
         '''Returns True if `FileBlock` is a 1D data block (not a data series)'''
@@ -167,7 +167,7 @@ class FileBlock:
 
     def is_data_series(self):
         '''Returns True if `FileBlock` is a data series block (i.e. 3D data)'''
-        return self.type[2] == 0 and self.type[5] == 2
+        return self.is_data() and self.type[5] == 2
     
     def is_compact_data(self):
         '''Returns True if `FileBlock` is a compact 1D data block. These data blocks have metadata preceeding the data

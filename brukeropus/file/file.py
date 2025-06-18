@@ -175,7 +175,8 @@ class OPUSFile:
         hist_blocks = [b for b in self.directory.blocks if b.is_file_log()]
         if len(hist_blocks) > 0:
             self.history = '\n\n'.join([b.data for b in hist_blocks])
-        self._remove_blocks(hist_blocks, 'history')
+            self.history_blocks = hist_blocks
+            self._remove_blocks(hist_blocks, 'history')
 
     def _get_unused_data_key(self, data_block: FileBlock):
         '''Returns a shorthand attribute key for the data_block type. If key already exists'''
