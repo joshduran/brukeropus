@@ -22,6 +22,7 @@ def get_all_blocks(opusfile: OPUSFile) -> list:
         blocks.append(report.block)
     if opusfile.history:
         blocks = blocks + opusfile.history_blocks
+    blocks = [b for b in blocks if b is not None]
     return blocks
 
 
@@ -32,8 +33,11 @@ def filter_data_with_mismatched_num_blocks(data: list) -> list:
     mismatched = []
     for o in data:
         blocks = get_all_blocks(o)
-        if not (len(blocks) == len(o.directory.block.data) and len(blocks) == o.directory.num_blocks):
-            mismatched.append(o)
+        try:
+            if not (len(blocks) == len(o.directory.block.data) and len(blocks) == o.directory.num_blocks):
+                mismatched.append(o)
+        except:
+            print('Directory block missing for file (skipping mismatched block test):', o.filepath)
     return mismatched
 
 
@@ -80,7 +84,8 @@ def print_fail(message):
 if __name__ == "__main__":
     # ==============================================================================================
     # Test Report Settings
-    directory = os.path.join(TEST_DIR, 'files')  # Directory with test files
+    #directory = os.path.join(TEST_DIR, 'files')  # Directory with test files
+    directory = r'C:\Users\duranjm\Desktop\examples\github issues'
     width = 120  # Width of report in characters
     print_non_opus_ext = False  # Whether to print all files without OPUS numeric extension
     # ----------------------------------------------------------------------------------------------

@@ -192,10 +192,14 @@ def get_dpf_dtype_count(dpf: int, size: int) -> tuple:
         **dtype (numpy.dtype):** `numpy` dtype for defining an `ndarray` to store the data
         **count (int):** length of array calculated from the block size and byte size of the dtype.
     '''
-    if dpf == 2:
+    if dpf == 1:
+        dtype = np.float32
+        count = round(size/4)
+    elif dpf == 2:
         dtype = np.int32
         count = round(size/4)
     else:
+        print('Unknown Data Point Format Requested:', dpf, '[using default: `float32`]')
         dtype = np.float32
         count = round(size/4)
     return dtype, count
