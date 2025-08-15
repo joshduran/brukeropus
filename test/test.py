@@ -84,8 +84,7 @@ def print_fail(message):
 if __name__ == "__main__":
     # ==============================================================================================
     # Test Report Settings
-    #directory = os.path.join(TEST_DIR, 'files')  # Directory with test files
-    directory = r'C:\Users\duranjm\Desktop\examples\github issues'
+    directory = os.path.join(TEST_DIR, 'files')  # Directory with test files
     width = 120  # Width of report in characters
     print_non_opus_ext = False  # Whether to print all files without OPUS numeric extension
     # ----------------------------------------------------------------------------------------------
@@ -171,12 +170,12 @@ if __name__ == "__main__":
         print_fail('Expected over 2000 PARAM_LABEL (key, label) pairs. Only found: ' + str(len(PARAM_LABELS.keys())))
     elif len(failed_params) == 0:
         print_pass('All keys and labels in PARAM_LABELS are formatted properly')
-    # # ==============================================================================================
-    # # File Statistics
-    # print('_' * width)
-    # _print_centered('Test File Statistics', width=width)
-    # data_keys = set()
-    # for o in opus_data:
-    #     for key in o.all_data_keys:
-    #         data_keys.add(key)
-    # print('Data Keys (' + str(len(data_keys)) + '):', '  '.join(sorted(list(data_keys))))
+    # ==============================================================================================
+    # File Statistics
+    print('_' * width)
+    _print_centered('Test File Statistics', width=width)
+    data_keys = set()
+    for o in opus_data:
+        for key in o.all_data_keys:
+            data_keys.add(key)
+    print('Data Keys (' + str(len(data_keys)) + '):', '  '.join(sorted(list(data_keys))))
