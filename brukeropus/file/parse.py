@@ -292,6 +292,8 @@ def parse_data_series(blockbytes: bytes, dpf: int = 1) -> dict:
         for j, entry in enumerate(STRUCT_3D_INFO_BLOCK):
             data[entry['key']][i] = info_vals[j]
         offset = offset + data['info_size']
+        if offset >= len(blockbytes):
+            break # Not all blocks are necessarily stored (see Store Table)
     return data
 
 
