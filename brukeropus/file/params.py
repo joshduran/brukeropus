@@ -1,6 +1,7 @@
 import datetime
 
 from brukeropus.file.block import FileBlock
+from brukeropus.file.constants import PARAM_LABELS
 
 __docformat__ = "google"
 
@@ -100,3 +101,22 @@ class Parameters:
     def items(self):
         '''Returns a `dict_items` class of all the values in the class (i.e. dict.items())'''
         return self._params.items()
+
+
+def get_param_label(param: str):
+    '''Returns a short but descriptive label for 3-letter parameters. For example, bms returns Beamsplitter.
+
+    The 3-letter parameter input is not case sensitive.  This package includes the majority of parameters that OPUS
+    uses, but in the event a parameter label is not known, this function will return: "Unknown XXX" where XXX is the
+    unknown 3-letter parameter.
+
+    Args:
+        param: three letter parameter code (e.g. bms, src, npt, etc.) [not case sensitive]
+
+    Returns:
+        label (str): Human-readable string label for the parameter.
+    '''
+    try:
+        return PARAM_LABELS[param.upper()]
+    except KeyError:
+        return 'Unknown ' + param.upper()

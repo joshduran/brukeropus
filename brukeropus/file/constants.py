@@ -16,8 +16,8 @@ CODE_1 = {0: '',
 
 
 CODE_2 = {0: '',
-          1: 'Data Status Parameters',
-          2: 'Instrument Status Parameters',
+          1: 'Data Parameters',
+          2: 'Instrument Parameters',
           3: 'Acquisition Parameters',
           4: 'Fourier Transform Parameters',
           5: 'Plot and Display Parameters',
@@ -51,13 +51,6 @@ CODE_3 = {0: '',
           18: 'Result of Arithmatics, looks like Transmittance',
           19: 'Result of Arithmatics, looks like Absorbance',
           22: 'Match',
-          33: '2-Channel',
-          34: 'Interferogram 2-Channel',
-          36: 'Absorbance 2-Channel',
-          48: 'ATR 2-Channel',
-          54: 'Match 2-Channel',
-          65: '3-Channel',
-          97: '4-Channel',
           }
 
 
@@ -98,13 +91,6 @@ CODE_3_ABR = {0: '',
               18: 'arit',
               19: 'aria',
               22: 'match',
-              33: '_2ch', # sm/rf
-              34: 'ig_2ch', # sm/rf
-              36: 'a_2ch',
-              48: 'atr_2ch',
-              54: 'match_2ch',
-              65: '_3ch', # sm/rf
-              97: '_4ch', # sm/rf
               }
 
 

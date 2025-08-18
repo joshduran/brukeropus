@@ -1,27 +1,8 @@
 import warnings
-from brukeropus.file.constants import TYPE_CODE_LABELS, PARAM_LABELS, CODE_3_ABR
+from brukeropus.file.constants import TYPE_CODE_LABELS, CODE_3_ABR
 
 
 __docformat__ = "google"
-
-
-def get_param_label(param: str):
-    '''Returns a short but descriptive label for 3-letter parameters. For example, bms returns Beamsplitter.
-
-    The 3-letter parameter input is not case sensitive.  This package includes the majority of parameters that OPUS
-    uses, but in the event a parameter label is not known, this function will return: "Unknown XXX" where XXX is the
-    unknown 3-letter parameter.
-
-    Args:
-        param: three letter parameter code (e.g. bms, src, npt, etc.) [not case sensitive]
-
-    Returns:
-        label (str): Human-readable string label for the parameter.
-    '''
-    try:
-        return PARAM_LABELS[param.upper()]
-    except KeyError:
-        return 'Unknown ' + param.upper()
 
 
 def get_type_code_label(pos_idx: int, val: int):
@@ -50,7 +31,7 @@ def get_type_code_label(pos_idx: int, val: int):
     Returns:
         label (str): human-readable string label that describes the type code.
     '''
-    warnings.warn('Depreciation warning: get_type_code_label will soon be removed. This functionality has moved to BlockType class')
+    warnings.warn('Depreciation warning: get_type_code_label will soon be removed. This functionality has moved to `BlockType` class')
     try:
         return TYPE_CODE_LABELS[pos_idx][val]
     except KeyError:
@@ -68,7 +49,7 @@ def get_block_type_label(block_type: tuple):
     Returns:
         label (str): human-readable string label
     '''
-    warnings.warn('Depreciation warning: get_block_type_label will soon be removed. This functionality has moved to BlockType class')
+    warnings.warn('Depreciation warning: get_block_type_label will soon be removed. This functionality has moved to `BlockType` class')
     labels = [get_type_code_label(idx, val) for idx, val in enumerate(block_type) if val > 0
               and get_type_code_label(idx, val) != '']
     return ' '.join(labels)
@@ -88,6 +69,7 @@ def get_data_key(block_type: tuple):
 
     Returns:
         key (str): shorthand string label that can be utilized as a data key (e.g. "sm", "igrf", "a")'''
+    warnings.warn('Depreciation warning: get_data_key will soon be removed. This functionality has moved to `FileBlock` class')
     if block_type[3] in CODE_3_ABR.keys():
         key = CODE_3_ABR[block_type[3]]
         if block_type[1] == 1:
@@ -112,6 +94,7 @@ def get_data_key(block_type: tuple):
 def merge_key(key: str, sm: str):
     '''Merges "sm" or "rf" into an abreviated data key.  For special cases like ig or pw, the addition is appended
     (e.g. igsm, phrf), but for other cases, the addition is prepended (e.g. sm_2ch, rf_3ch)'''
+    warnings.warn('Depreciation warning: merge_key will soon be removed. This functionality has moved to `FileBlock` class')
     if key[:2] in ['ig', 'ph', 'pw']:
         return key[:2] + sm + key[2:]
     else:

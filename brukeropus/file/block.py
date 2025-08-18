@@ -1,5 +1,4 @@
-from brukeropus.file.labels import get_data_key
-from brukeropus.file.constants import TYPE_CODE_LABELS
+from brukeropus.file.constants import TYPE_CODE_LABELS, CODE_3_ABR
 from brukeropus.file.parse import (parse_directory,
                                    parse_params,
                                    parse_data,
@@ -53,10 +52,17 @@ class BlockType(tuple):
         Returns:
             label (str): human-readable string label that describes the type code at that index.
         '''
+        if pos_idx == 3:
+            channels, type_idx = divmod(self[3], 32)
+        else:
+            channels, type_idx = 0, self[pos_idx]
         try:
-            return TYPE_CODE_LABELS[pos_idx][self[pos_idx]]
+            label = TYPE_CODE_LABELS[pos_idx][type_idx]
         except KeyError:
-            return 'Unknown ' + str(pos_idx) + ' ' + str(self[pos_idx])
+            label = 'Unknown ' + str(pos_idx) + ' ' + str(type_idx)
+        if channels > 0:
+            label = label + ' ' + str(channels + 1) + '-Channel'
+        return label
 
     def get_aligned_tuple_str(self, pad=1):
         return f'{self[0]}' + f'{self[1]:2}' + f'{self[2]:3}' + f'{self[3]:3}' + f'{self[4]:2}' + f'{self[5]:2}'
@@ -184,7 +190,23 @@ class FileBlock:
         e.g. t: transmission, a: absorption, sm: sample, rf: reference, phsm: sample phase etc. If the block is not
         a data block, it will return `None`.'''
         if self.is_data() or self.is_data_series():
-            return get_data_key(self.type)
+            channels = self.type[3] // 32 + 1
+            type_idx = self.type[3] % 32
+            if type_idx in CODE_3_ABR.keys():
+                key = CODE_3_ABR[type_idx]
+            else:
+                key = '_' + str(self.type[3])
+            if self.type[1] == 1:
+                key = key + 'sm'
+            elif self.type[1] == 2:
+                key = key + 'rf'
+            elif self.type[1] > 3:
+                key = key + '_' + str(self.type[1])
+            if channels > 1:
+                key = key + '_' + str(channels) + 'ch'
+            if self.type[5] == 4:
+                key = key + '_c'
+            return key
         else:
             return None
 

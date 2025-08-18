@@ -183,7 +183,7 @@ class OPUSFile:
         key = data_block.get_data_key()
         if key in self.all_data_keys:
             for i in range(10):
-                sub_key = key + '_' + str(i + 1)
+                sub_key = key + '_' + str(i + 2)
                 if sub_key not in self.all_data_keys:
                     key = sub_key
                     break

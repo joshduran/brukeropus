@@ -1,7 +1,7 @@
 import re, os
 from brukeropus.file.block import FileBlock, BlockType
 from brukeropus.file.parse import read_opus_file_bytes, parse_header, parse_directory
-from brukeropus.file.labels import get_param_label
+from brukeropus.file.params import get_param_label
 
 
 __all__ = ['find_opus_files', 'parse_file_and_print']
