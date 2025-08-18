@@ -113,6 +113,7 @@ class DataSeries(Data):
         y: 2D numpy array containing y values of data block
         x: 1D numpy array containing x values of data block. Units of x array are given by `.dxu` attribute.
         num_spectra: number of spectra in the series (i.e. length of y)
+        store_table: list if tuples that represent start and end indexes of saved spectra (useful for skipped spectra)
         label: human-readable string label describing the data block (e.g. Sample Spectrum, Absorbance, etc.)
         key: attribute name (string) assigned to the data
         vel: mirror velocity setting for measurement (used to calculate modulation frequency)
@@ -132,7 +133,7 @@ class DataSeries(Data):
             class for convenience. Several of these parameters return arrays, rather than singular values because they
             are recorded for every spectra in the series, e.g. `npt`, `mny`, `mxy`, `srt`, 'ert', `nsn`.
     '''
-    __slots__ = ('key', 'params', 'y', 'x', 'label', 'vel', 'block', 'blocks', 'num_spectra')
+    __slots__ = ('key', 'params', 'y', 'x', 'label', 'vel', 'block', 'blocks', 'num_spectra', 'version', 'offset', 'num_blocks', 'data_size', 'info_size', 'store_table')
 
     def __init__(self, data_block: FileBlock, data_status_block: FileBlock, key: str, vel: float):
         self.key = key
@@ -140,9 +141,11 @@ class DataSeries(Data):
         data = data_block.data
         self.y = data['y'][:, :self.params.npt]    # Trim extra values on some spectra
         self.x = np.linspace(self.params.fxv, self.params.lxv, self.params.npt)
-        self.num_spectra = data['num_blocks']
+        self.num_spectra = len(self.y)
+        for key in ['version', 'offset', 'num_blocks', 'data_size', 'info_size', 'store_table']:
+            setattr(self, key, data[key])
         for key, val in data.items():
-            if key not in ['y', 'version', 'offset', 'num_blocks', 'data_size', 'info_size']:
+            if key not in ['version', 'offset', 'num_blocks', 'data_size', 'info_size', 'store_table']:
                 self.params._params[key] = val
         self.label = data_block.get_label()
         self.vel = vel
