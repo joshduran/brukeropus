@@ -117,6 +117,7 @@ class FileBlock:
         self.data = None
         self.parser = None
         self.parse_error = None
+        self.error = None
 
     def __str__(self):
         label = self.get_label()
