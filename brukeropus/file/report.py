@@ -46,7 +46,8 @@ class Report:
         if 'h00' in data['info'].keys():
             self.properties = {
                 data['info'][key]: 
-                    data['info']['v' + key[1:]] for key in data['info'].keys() if re.search('h[0-9][0-9]', key)
+                    data['info']['v' + key[1:]] for key in data['info'].keys() if re.search('h[0-9][0-9]', key) and
+                    f'v{key[1:]}' in data['info'].keys()
             }
         self.sub = []
         if 'subreports' in data.keys():
