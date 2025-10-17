@@ -106,7 +106,7 @@ class FileBlock:
         parser: name of parsing function if parsing was successful
     '''
 
-    __slots__ = ('type', 'size', 'start', 'bytes', 'data', 'parser', 'parse_error', 'keys', 'debug')
+    __slots__ = ('type', 'size', 'start', 'bytes', 'data', 'parser', 'parse_error', 'keys', 'debug', 'error')
 
     def __init__(self, filebytes: bytes, block_type: tuple, size: int, start: int, debug=False):
         self.bytes = filebytes[start: start + size]
@@ -117,6 +117,7 @@ class FileBlock:
         self.data = None
         self.parser = None
         self.parse_error = None
+        self.error = None
 
     def __str__(self):
         label = self.get_label()
