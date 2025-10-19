@@ -166,8 +166,8 @@ class OPUSFile:
             try:
                 self.reports.append(Report(b))
             except Exception as e:
-                b.error = e
-                self.reports.append(b)
+                b.parse_error = e
+                self.directory.parse_error_blocks.append(b)
         self._remove_blocks(report_blocks, 'reports')
 
     def _init_history(self):

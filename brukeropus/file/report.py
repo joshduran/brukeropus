@@ -44,10 +44,14 @@ class Report:
         self.title = data['header']['tit']
         self.table = ReportTable(info=data['info'], data=data['data'], title=data['header']['e00'])
         if 'h00' in data['info'].keys():
-            self.properties = {
-                data['info'][key]: 
-                    data['info']['v' + key[1:]] for key in data['info'].keys() if re.search('h[0-9][0-9]', key)
-            }
+            self.properties = dict()
+            for key in data['info'].keys():
+                if re.search('h[0-9][0-9]', key):
+                    try:
+                        val = data['info']['v' + key[1:]]
+                    except:
+                        val = None
+                    self.properties[data['info'][key]] = val
         self.sub = []
         if 'subreports' in data.keys():
             for i, subreport in enumerate(data['subreports']):
